@@ -79,11 +79,17 @@ public class Main implements IXposedHookLoadPackage {
                     tweetList.clear();
                     return;
                 }
+                XposedBridge.log("param ＝＝＝＝ "+param);
+                XposedBridge.log("param args ＝＝＝＝ "+param.args);
+                XposedBridge.log("param args[0] ＝＝＝＝ "+param.args[0]);
                 Class atp = XposedHelpers.findClass(Config.PROTOCAL_SNS_DETAIL_CLASS, lpparam.classLoader);
                 Class Parser = XposedHelpers.findClass(Config.SNS_XML_GENERATOR_CLASS, lpparam.classLoader);
                 Method parseMethod = Parser.getMethod(Config.SNS_XML_GENERATOR_METHOD, atp);
+
+
                 try {
                     String result = (String) parseMethod.invoke(this, param.thisObject);
+
                     if (!getTimelineId(result).equals(lastTimelineId))
                         currentTweet.clear();
                     parseTimelineXML(result);
