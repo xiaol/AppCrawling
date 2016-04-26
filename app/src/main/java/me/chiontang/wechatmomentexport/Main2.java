@@ -9,6 +9,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -16,8 +20,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.regex.Matcher;
@@ -34,9 +36,7 @@ import me.chiontang.wechatmomentexport.models.Like;
 import me.chiontang.wechatmomentexport.models.ModelBean;
 import me.chiontang.wechatmomentexport.models.Tweet;
 
-
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
-import static de.robv.android.xposed.XposedHelpers.findConstructorExact;
 
 public class Main2 implements IXposedHookLoadPackage {
 
@@ -63,32 +63,6 @@ public class Main2 implements IXposedHookLoadPackage {
 
         XposedBridge.log("handleLoadPackage ===== " + lpparam.packageName);
         Config.enabled = true;
-//        Class classCustomOp = XposedHelpers.findClass("com.wandoujia.ripple_framework.model.Model", lpparam.classLoader);
-//        Class classDataloadListener = XposedHelpers.findClass("com.wandoujia.nirvana.framework.network.page.DataLoadListener.ˊ", lpparam.classLoader);
-//        if(classCustomOp != null) {
-//            XposedBridge.log("内部类classCustomOp=" + classCustomOp.getName());
-//
-//        }else{
-//            XposedBridge.log("内部类classCustomOp=null");
-//        }
-//
-//        if(classDataloadListener != null) {
-//            XposedBridge.log("内部类classDataloadListener=" + classDataloadListener.getName());
-//        }else{
-//            XposedBridge.log("内部类classDataloadListener=null");
-//        }
-
-//
-//        //＝＝＝＝＝＝＝＝＝＝  获取com.wandoujia.api.proto.Entity$Builder的数据  ＝＝＝＝＝＝＝＝＝＝
-//        HashMap<String, String> map = getData(lpparam);
-//
-//
-////        for (int i = 0; i < data.size(); i++){
-//            XposedBridge.log("data map ===== " + map.toString());
-////        }
-//
-//        //＝＝＝＝＝＝＝＝＝＝  end  ＝＝＝＝＝＝＝＝＝＝
-
 
         /**
          * Xposed提供的Hook方法
@@ -110,46 +84,7 @@ public class Main2 implements IXposedHookLoadPackage {
 //                Class entity  = XposedHelpers.findClass("com.wandoujia.api.proto.Entity", lpparam.classLoader);
 //                Class builder = XposedHelpers.findClass("com.wandoujia.api.proto.Entity$Builder", lpparam.classLoader);
                         Class model = XposedHelpers.findClass("com.wandoujia.ripple_framework.model.Model", lpparam.classLoader);
-//                Method parseMethod = builder.getMethod("attach_entity", List.class);
-//                        findAndHookMethod("com.wandoujia.ripple_framework.presenter.CommonPresenter", lpparam.classLoader, "bindText",
-//                                TextView.class, CharSequence.class, new XC_MethodHook() {
-//                                    @Override
-//                                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-//                                        super.afterHookedMethod(param);
 //
-//                                        XposedBridge.log("appTitle ＝＝＝＝ " + param.args[1]);
-//                                        appTreeSet.add((String) param.args[1]);
-//
-//                                    }
-//                                });
-//                        findAndHookMethod("com.wandoujia.ripple_framework.presenter.CommonPresenter", lpparam.classLoader, "bindImage",
-//                                ImageView.class, String.class, new XC_MethodHook() {
-//                                    @Override
-//                                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-//                                        super.afterHookedMethod(param);
-//
-//                                        XposedBridge.log("param bindImage ＝＝＝＝ " + param.args[1]);
-//                                        appTreeSet.add((String) param.args[1]);
-//
-//                                    }
-//                                });
-//                        findAndHookMethod("com.wandoujia.ripple_framework.presenter.CardPresenterFactory$SummaryPresenter", lpparam.classLoader, "bind",
-//                                model, new XC_MethodHook() {
-//                                    @Override
-//                                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-//                                        super.afterHookedMethod(param);
-////                                        paramModel.getSummary()
-//                                        Object model = param.args[0];
-//                                        Method getSummary = modelClass.getMethod("getSummary");
-//                                        Object getSummaryResult = (Object) getSummary.invoke(model, new Object[]{});
-//
-//                                        appTreeSet.add((String) getSummaryResult);
-//                                        XposedBridge.log("param getSummaryResult ＝＝＝＝ " + getSummaryResult);
-//
-//
-//                                    }
-//                                });
-
 
                         findAndHookMethod("com.wandoujia.ripple_framework.presenter.CardPresenterFactory$AuthorPresenter", lpparam.classLoader, "bind",
                                 model, new XC_MethodHook() {
@@ -162,8 +97,6 @@ public class Main2 implements IXposedHookLoadPackage {
 //                                        String str1 = paramModel.getArticleDetail().author;
                                         Object model = param.args[0];
 //                                        Class Parser = XposedHelpers.findClass("com.wandoujia.api.proto.ArticleDetail", lpparam.classLoader);
-
-
 
                                         Method getProvider = modelClass.getMethod("getProvider");
                                         Object getProviderResult = (Object) getProvider.invoke(model, new Object[]{});
@@ -187,9 +120,6 @@ public class Main2 implements IXposedHookLoadPackage {
                                         String author = (String) XposedHelpers.getObjectField(getArticleDetailResult, "author");
                                         String content_html = (String) XposedHelpers.getObjectField(getArticleDetailResult, "content_html");
                                         long published_date = (long) XposedHelpers.getObjectField(getArticleDetailResult, "published_date");
-
-
-
 
 
                                         if(icon != null){
@@ -221,7 +151,6 @@ public class Main2 implements IXposedHookLoadPackage {
                                             XposedBridge.log("  content_html ＝＝＝＝ " + content_html);
                                         }
 
-
 //                                        paramModel.getProvider().getTitle();
                                         detailResultMap.put(published_date, bean);
 
@@ -230,9 +159,6 @@ public class Main2 implements IXposedHookLoadPackage {
                                     }
                                 });
 
-//                        HashMap<String, String> map = getData(lpparam);
-//                        XposedBridge.log("data map ===== " + map.toString());
-
 
                     }
                 });
@@ -240,50 +166,24 @@ public class Main2 implements IXposedHookLoadPackage {
 
     }
 
+
+//    StringRequest stringRequest = new StringRequest("http://www.baidu.com",
+//            new Response.Listener<String>() {
+//                @Override
+//                public void onResponse(String response) {
+//                    Log.d("TAG", response);
+//                }
+//            }, new Response.ErrorListener() {
+//        @Override
+//        public void onErrorResponse(VolleyError error) {
+//            Log.e("TAG", error.getMessage(), error);
+//        }
+//    });
+
+
     public static final String ENTITY_BUILDER = "com.wandoujia.api.proto.Entity$Builder";
 
 
-
-
-    private HashMap<String, String> getData(final LoadPackageParam lpparam) {
-
-        final HashMap<String, String> map = new HashMap<String, String>();
-
-
-        final Class templateType = XposedHelpers.findClass("com.wandoujia.api.proto.TemplateTypeEnum$TemplateType", lpparam.classLoader);
-
-
-        final Class ArticleDetail = XposedHelpers.findClass("com.wandoujia.api.proto.ArticleDetail", lpparam.classLoader);
-        final Class Detail = XposedHelpers.findClass("com.wandoujia.api.proto.Detail", lpparam.classLoader);
-//        findAndHookMethod("com.wandoujia.api.proto.ArticleDetail$Builder", lpparam.classLoader, "build",  new XC_MethodHook() {
-//            @Override
-//            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-//                super.afterHookedMethod(param);
-//                Config.enabled = true;
-//                Object title =  param.getResult();
-//
-//                long published_date = (long) XposedHelpers.getObjectField(title, "published_date");
-//                String content_html = (String) XposedHelpers.getObjectField(title, "content_html");
-//
-//
-//                XposedBridge.log("detail ArticleDetail published_date＝＝＝＝ " + published_date);
-//                XposedBridge.log("detail ArticleDetail content_html＝＝＝＝ " + content_html);
-//
-//            }
-//        });
-
-
-
-
-
-        XposedBridge.log("data map ===== " + map.toString());
-//        }
-        XposedBridge.log("＝＝＝＝ loop over ＝＝＝＝ ");
-
-        return map;
-//        data.add(map);
-
-    }
 
 
 

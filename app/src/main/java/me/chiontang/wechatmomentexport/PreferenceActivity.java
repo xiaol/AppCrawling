@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -35,6 +36,16 @@ public class PreferenceActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        WindowManager wm = this.getWindowManager();
+
+        int width = wm.getDefaultDisplay().getWidth();
+        int height = wm.getDefaultDisplay().getHeight();
+        Log.i("aaa", "width ====== "+width);
+        Log.i("aaa", "height ====== "+height);
+
+
+
         setContentView(R.layout.activity_preference);
         outputFileEditText = (EditText)findViewById(R.id.output_file_editText);
         toggleInterceptButton = (Button)findViewById(R.id.toggle_intercept_button);
