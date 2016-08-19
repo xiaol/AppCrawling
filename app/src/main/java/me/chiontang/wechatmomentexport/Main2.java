@@ -1,7 +1,8 @@
 package me.chiontang.wechatmomentexport;
 
+import android.app.Activity;
 import android.content.Context;
-import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -9,19 +10,21 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,6 +38,7 @@ import me.chiontang.wechatmomentexport.models.Comment;
 import me.chiontang.wechatmomentexport.models.Like;
 import me.chiontang.wechatmomentexport.models.ModelBean;
 import me.chiontang.wechatmomentexport.models.Tweet;
+import me.chiontang.wechatmomentexport.sql.SQLiteHelper;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -46,23 +50,111 @@ public class Main2 implements IXposedHookLoadPackage {
     Thread intervalSaveThread = null;
     Context appContext = null;
     String wechatVersion = "";
+    RequestQueue mQueue;
 
+    private SQLiteDatabase db;
+    private SQLiteHelper dbHelper;
+    private static String DB_NAME = "news.db";
+    private static int DB_VERSION = 1;
+    private static String cur_content_html = "";
 
     /**
      * 需要上传的最终集合
      */
-    public LinkedHashMap<Long,ModelBean> detailResultMap = new LinkedHashMap<Long,ModelBean>();
+//    public LinkedHashMap<Long, ModelBean> detailResultMap = new LinkedHashMap<Long, ModelBean>();
 
     //com.wandoujia.ripple.fragment.FeedListFragment
-
     @Override
     public void handleLoadPackage(final LoadPackageParam lpparam) throws Throwable {
         if (!lpparam.packageName.equals("com.wandoujia"))
             return;
-        final Class modelClass = XposedHelpers.findClass("com.wandoujia.ripple_framework.model.Model", lpparam.classLoader);
-
         XposedBridge.log("handleLoadPackage ===== " + lpparam.packageName);
         Config.enabled = true;
+
+        findAndHookMethod("com.wandoujia.ripple.activity.HomeActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+                if (appContext != null) {
+                    return;
+                }
+                XposedBridge.log("LauncherUI hooked.");
+                appContext = ((Activity) param.thisObject).getApplicationContext();
+                mQueue = Volley.newRequestQueue(appContext);
+                dbHelper = new SQLiteHelper(appContext, DB_NAME, null, DB_VERSION);
+                db = dbHelper.getWritableDatabase();
+                hookMethods(lpparam);
+            }
+        });
+
+
+    }
+
+
+    private void postDetail(final ModelBean bean) {
+        if (bean == null) {
+            return;
+        }
+
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://120.27.162.110:9000/news", new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.d("TAG", response);
+                XposedBridge.log("onResponse ＝＝＝" + response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("TAG", error.getMessage(), error);
+                XposedBridge.log("onErrorResponse ＝＝＝" + error.getMessage());
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> map = new HashMap<String, String>();
+                if (bean.getArticlTitle() != null)
+                    map.put("article_title", bean.getArticlTitle());
+                if (bean.getAppName() != null)
+                    map.put("app_name", bean.getAppName());
+                if (bean.getIcon() != null)
+                    map.put("app_icon", bean.getIcon());
+                if (bean.getDetailHtml() != null)
+                    map.put("detail_html", bean.getDetailHtml());
+                map.put("published_date", bean.getPublished_date() + "");
+                if (bean.getSummary() != null)
+                    map.put("summary", bean.getSummary());
+                if (bean.getAuthor() != null)
+                    map.put("author", bean.getAuthor());
+//                if(bean.getd!= null)
+//                    map.put("docid", bean.getArticlTitle());
+                return map;
+            }
+        };
+        mQueue.add(stringRequest);
+    }
+
+
+    public static final String ENTITY_BUILDER = "com.wandoujia.api.proto.Entity$Builder";
+
+
+    private void getAllTextViews(final View v) {
+        if (v instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) v;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                View child = vg.getChildAt(i);
+                getAllTextViews(child);
+            }
+        } else if (v instanceof TextView) {
+            String name = ((TextView) v).getText().toString();
+            writeTxtToFile(name);
+        }
+    }
+
+
+    private void hookMethods(final LoadPackageParam lpparam) {
+
+        final Class modelClass = XposedHelpers.findClass("com.wandoujia.ripple_framework.model.Model", lpparam.classLoader);
 
         /**
          * Xposed提供的Hook方法
@@ -79,6 +171,7 @@ public class Main2 implements IXposedHookLoadPackage {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         super.afterHookedMethod(param);
+
                         Config.enabled = true;
                         XposedBridge.log("FeedDetailFragment  param ＝＝＝＝ " + param);
 //                Class entity  = XposedHelpers.findClass("com.wandoujia.api.proto.Entity", lpparam.classLoader);
@@ -103,8 +196,8 @@ public class Main2 implements IXposedHookLoadPackage {
 
                                         Method getTitle = modelClass.getMethod("getTitle");
 
-                                        String title = (String) getTitle.invoke(model, new Object[]{});
-                                        String articlTitle = (String) getTitle.invoke(getProviderResult, new Object[]{});
+                                        String articlTitle = (String) getTitle.invoke(model, new Object[]{});
+                                        String app = (String) getTitle.invoke(getProviderResult, new Object[]{});
                                         Method getSummary = modelClass.getMethod("getSummary");
                                         String getSummaryResult = (String) getSummary.invoke(model, new Object[]{});
 
@@ -119,42 +212,47 @@ public class Main2 implements IXposedHookLoadPackage {
 
                                         String author = (String) XposedHelpers.getObjectField(getArticleDetailResult, "author");
                                         String content_html = (String) XposedHelpers.getObjectField(getArticleDetailResult, "content_html");
+
                                         long published_date = (long) XposedHelpers.getObjectField(getArticleDetailResult, "published_date");
 
 
-                                        if(icon != null){
-                                            bean.setIcon(icon);
-                                            XposedBridge.log("  icon ＝＝＝＝ " + icon);
-                                        }
-                                        if (title != null) {
-                                            bean.setAppName(title);
-                                            XposedBridge.log("  title ＝＝＝＝ " + title);
-                                        }
-                                        if (articlTitle != null) {
-                                            bean.setArticlTitle(articlTitle);
-                                            XposedBridge.log("  articlTitle ＝＝＝＝ " + articlTitle);
-                                        }
-                                        if(getSummaryResult != null){
-                                            bean.setSummary(getSummaryResult);
-                                            XposedBridge.log("  getSummaryResult ＝＝＝＝ " + getSummaryResult);
-                                        }
-                                        if (author != null) {
-                                            bean.setAuthor(author);
-                                            XposedBridge.log("  author ＝＝＝＝ " + author);
-                                        }
-                                        if (published_date != 0) {
-                                            bean.setPublished_date(published_date);
-                                            XposedBridge.log("  published_date ＝＝＝＝ " + published_date);
-                                        }
-                                        if (content_html != null) {
-                                            bean.setDetailHtml(content_html);
-                                            XposedBridge.log("  content_html ＝＝＝＝ " + content_html);
-                                        }
+                                        if (cur_content_html != null && content_html != null && !cur_content_html.equals(content_html)) {
 
-//                                        paramModel.getProvider().getTitle();
-                                        detailResultMap.put(published_date, bean);
+                                            cur_content_html = content_html;
 
-                                        XposedBridge.log("  detailResultMap ＝＝＝＝ " + detailResultMap.size());
+                                            if (icon != null) {
+                                                bean.setIcon(icon);
+//                                            XposedBridge.log("  icon ＝＝＝＝ " + icon);
+                                            }
+                                            if (articlTitle != null) {
+                                                bean.setArticlTitle(articlTitle);
+//                                            XposedBridge.log("  title ＝＝＝＝ " + title);
+                                            }
+                                            if (app != null) {
+                                                bean.setAppName(app);
+//                                            XposedBridge.log("  articlTitle ＝＝＝＝ " + articlTitle);
+                                            }
+                                            if (getSummaryResult != null) {
+                                                bean.setSummary(getSummaryResult);
+//                                            XposedBridge.log("  getSummaryResult ＝＝＝＝ " + getSummaryResult);
+                                            }
+                                            if (author != null) {
+                                                bean.setAuthor(author);
+//                                            XposedBridge.log("  author ＝＝＝＝ " + author);
+                                            }
+                                            if (published_date != 0) {
+                                                bean.setPublished_date(published_date);
+//                                            XposedBridge.log("  published_date ＝＝＝＝ " + published_date);
+                                            }
+                                            if (content_html != null) {
+                                                bean.setDetailHtml(content_html);
+//                                            XposedBridge.log("  content_html ＝＝＝＝ " + content_html);
+                                            }
+
+                                            XposedBridge.log("插入的数据的title为：" + bean.getArticlTitle());
+                                            postDetail(bean);
+                                        }
+//                                        XposedBridge.log("  detailResultMap ＝＝＝＝ " + detailResultMap.size());
 
                                     }
                                 });
@@ -163,76 +261,6 @@ public class Main2 implements IXposedHookLoadPackage {
                     }
                 });
 
-
-    }
-
-
-//    StringRequest stringRequest = new StringRequest("http://www.baidu.com",
-//            new Response.Listener<String>() {
-//                @Override
-//                public void onResponse(String response) {
-//                    Log.d("TAG", response);
-//                }
-//            }, new Response.ErrorListener() {
-//        @Override
-//        public void onErrorResponse(VolleyError error) {
-//            Log.e("TAG", error.getMessage(), error);
-//        }
-//    });
-
-
-    public static final String ENTITY_BUILDER = "com.wandoujia.api.proto.Entity$Builder";
-
-
-
-
-
-
-    private void getAllTextViews(final View v) {
-        if (v instanceof ViewGroup) {
-            ViewGroup vg = (ViewGroup) v;
-            for (int i = 0; i < vg.getChildCount(); i++) {
-                View child = vg.getChildAt(i);
-                getAllTextViews(child);
-            }
-        } else if (v instanceof TextView) {
-            String name = ((TextView) v).getText().toString();
-            writeTxtToFile(name);
-        }
-    }
-
-
-    private void hookMethods(final LoadPackageParam lpparam) {
-        findAndHookMethod("com.tencent.mm.storage.c", lpparam.classLoader, "", Cursor.class, new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                super.afterHookedMethod(param);
-                //ʿ
-//                loadFromSharedPreference();
-                Config.enabled = true;
-
-                File jsonFile = new File(Config.outputFile);
-                if (!jsonFile.exists()) {
-                    try {
-                        jsonFile.createNewFile();
-                    } catch (IOException e) {
-                        XposedBridge.log(e.getMessage());
-                    }
-                }
-
-                try {
-                    FileWriter fw = new FileWriter(jsonFile.getAbsoluteFile());
-                    BufferedWriter bw = new BufferedWriter(fw);
-                    bw.write("create my file");
-
-                    Class c = XposedHelpers.findClass("com.tencent.mm.storage.c", lpparam.classLoader);
-                    bw.write(c.getName());
-                    bw.close();
-                } catch (IOException e) {
-                    XposedBridge.log(e.getMessage());
-                }
-            }
-        });
 
     }
 

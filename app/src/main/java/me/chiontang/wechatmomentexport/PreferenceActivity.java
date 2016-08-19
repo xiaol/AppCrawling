@@ -19,12 +19,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+import me.chiontang.wechatmomentexport.models.User;
 
 public class PreferenceActivity extends AppCompatActivity {
 
@@ -33,16 +40,12 @@ public class PreferenceActivity extends AppCompatActivity {
     TextView wechatStatusTextView = null;
     TextView runningStatusTextView = null;
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        WindowManager wm = this.getWindowManager();
-
-        int width = wm.getDefaultDisplay().getWidth();
-        int height = wm.getDefaultDisplay().getHeight();
-        Log.i("aaa", "width ====== "+width);
-        Log.i("aaa", "height ====== "+height);
 
 
 
@@ -59,6 +62,36 @@ public class PreferenceActivity extends AppCompatActivity {
             }
         });
         testRoot();
+
+        List list = new LinkedList();
+        for(int i=0;i<3;i++){
+            User p = new User();
+            p.setUserId(i+"");
+            p.setUserName("name"+i);
+            list.add(p);
+        }
+
+        try {
+            String str = getJsonArray(list).toString();
+            Log.e("aaa","str= ======== "+str);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+//        String aa = net.sf.json.JSONArray.fromObject(list).toString();
+//        Log.e("aaa","aa= ======== "+aa);
+    }
+
+
+    public static JSONArray getJsonArray(List<User> list) throws JSONException {
+        JSONArray jsonArray = new JSONArray();
+        for (int i = 0; i < list.size(); i++){
+            User user = list.get(i);
+            JSONObject jo = new JSONObject();
+            jo.put("id", user.getUserId()).put("name",user.getUserName());
+            jsonArray.put(jo);
+        }
+
+        return jsonArray;
     }
 
     protected void testRoot() {
