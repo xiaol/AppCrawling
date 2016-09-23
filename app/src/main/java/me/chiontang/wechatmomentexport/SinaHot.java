@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -42,7 +43,7 @@ import me.chiontang.wechatmomentexport.sql.SQLiteHelper;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
-public class Main2 implements IXposedHookLoadPackage {
+public class SinaHot implements IXposedHookLoadPackage {
 
     Tweet currentTweet = new Tweet();
     ArrayList<Tweet> tweetList = new ArrayList<Tweet>();
@@ -66,26 +67,27 @@ public class Main2 implements IXposedHookLoadPackage {
     //com.wandoujia.ripple.fragment.FeedListFragment
     @Override
     public void handleLoadPackage(final LoadPackageParam lpparam) throws Throwable {
-        if (!lpparam.packageName.equals("com.wandoujia"))
+
+        if (!lpparam.packageName.equals("com.sina.weibo"))
             return;
         XposedBridge.log("handleLoadPackage ===== " + lpparam.packageName);
         Config.enabled = true;
 
-        findAndHookMethod("com.wandoujia.ripple.activity.HomeActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                super.afterHookedMethod(param);
-                if (appContext != null) {
-                    return;
-                }
-                XposedBridge.log("LauncherUI hooked.");
-                appContext = ((Activity) param.thisObject).getApplicationContext();
-                mQueue = Volley.newRequestQueue(appContext);
-                dbHelper = new SQLiteHelper(appContext, DB_NAME, null, DB_VERSION);
-                db = dbHelper.getWritableDatabase();
+//        findAndHookMethod("com.sina.weibo.page.DiscoverActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+//            @Override
+//            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                super.afterHookedMethod(param);
+//                if (appContext != null) {
+//                    return;
+//                }
+//                XposedBridge.log("LauncherUI hooked.");
+//                appContext = ((Activity) param.thisObject).getApplicationContext();
+//                mQueue = Volley.newRequestQueue(appContext);
+//                dbHelper = new SQLiteHelper(appContext, DB_NAME, null, DB_VERSION);
+//                db = dbHelper.getWritableDatabase();
                 hookMethods(lpparam);
-            }
-        });
+//            }
+//        });
 
 
     }
@@ -154,7 +156,7 @@ public class Main2 implements IXposedHookLoadPackage {
 
     private void hookMethods(final LoadPackageParam lpparam) {
 
-        final Class modelClass = XposedHelpers.findClass("com.wandoujia.ripple_framework.model.Model", lpparam.classLoader);
+//        final Class modelClass = XposedHelpers.findClass("com.wandoujia.ripple_framework.model.Model", lpparam.classLoader);
 
         /**
          * Xposed提供的Hook方法
@@ -165,15 +167,15 @@ public class Main2 implements IXposedHookLoadPackage {
          * @param parameterTypesAndCallback hook回调
          * @return
          */
-        findAndHookMethod("com.wandoujia.ripple_framework.ripple.fragment.FeedDetailFragment", lpparam.classLoader, "onCreate",
-                Bundle.class, new XC_MethodHook() {
+        findAndHookMethod("com.sina.weibo.stream.discover.b", lpparam.classLoader, "a",
+                LayoutInflater.class, new XC_MethodHook() {
 
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         super.afterHookedMethod(param);
 
                         Config.enabled = true;
-                        XposedBridge.log("FeedDetailFragment  param ＝＝＝＝ " + param);
+                        XposedBridge.log("com.sina.weibo.stream.discover.b ");
 //                Class entity  = XposedHelpers.findClass("com.wandoujia.api.proto.Entity", lpparam.classLoader);
 //                Class builder = XposedHelpers.findClass("com.wandoujia.api.proto.Entity$Builder", lpparam.classLoader);
                         final Class model = XposedHelpers.findClass("com.wandoujia.ripple_framework.model.Model", lpparam.classLoader);
@@ -185,105 +187,105 @@ public class Main2 implements IXposedHookLoadPackage {
                                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                                         super.afterHookedMethod(param);
 
-                                        findAndHookMethod("com.wandoujia.ripple_framework.presenter.OpenVideoAttachPresenter", lpparam.classLoader, "bind",
-                                                model, new XC_MethodHook() {
-                                                    @Override
-                                                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                                                        super.afterHookedMethod(param);
+//                                        findAndHookMethod("com.wandoujia.ripple_framework.presenter.OpenVideoAttachPresenter", lpparam.classLoader, "bind",
+//                                                model, new XC_MethodHook() {
+//                                                    @Override
+//                                                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                                                        super.afterHookedMethod(param);
+//
+//                                                        Object model1 = param.args[0];
+//                                                        Method getDetailUrl = modelClass.getMethod("getDetailUrl");
+//                                                        String vidiodetailUrl = (String) getDetailUrl.invoke(model1, new Object[]{});
+//
+//                                                        //如果详情页需要跳转视频详情页url就不上传此数据
+//                                                        if (vidiodetailUrl != null ){
+//                                                            return;
+//                                                        }
+//
+////                                                        XposedBridge.log("  vidiodetailUrl ＝＝＝＝ " + vidiodetailUrl);
+//
+//                                                    }
+//                                                });
 
-                                                        Object model1 = param.args[0];
-                                                        Method getDetailUrl = modelClass.getMethod("getDetailUrl");
-                                                        String vidiodetailUrl = (String) getDetailUrl.invoke(model1, new Object[]{});
-
-                                                        //如果详情页需要跳转视频详情页url就不上传此数据
-                                                        if (vidiodetailUrl != null ){
-                                                            return;
-                                                        }
-
-//                                                        XposedBridge.log("  vidiodetailUrl ＝＝＝＝ " + vidiodetailUrl);
-
-                                                    }
-                                                });
-
-                                        ModelBean bean = new ModelBean();
-
-//                                        String str1 = paramModel.getArticleDetail().author;
-                                        Object model = param.args[0];
-//                                        Class Parser = XposedHelpers.findClass("com.wandoujia.api.proto.ArticleDetail", lpparam.classLoader);
-
-                                        Method getProvider = modelClass.getMethod("getProvider");
-                                        Object getProviderResult = (Object) getProvider.invoke(model, new Object[]{});
-
-                                        Method getTitle = modelClass.getMethod("getTitle");
-
-                                        String articlTitle = (String) getTitle.invoke(model, new Object[]{});
-                                        String app = (String) getTitle.invoke(getProviderResult, new Object[]{});
-                                        Method getSummary = modelClass.getMethod("getSummary");
-                                        String getSummaryResult = (String) getSummary.invoke(model, new Object[]{});
-
-
-                                        Method getIcon = modelClass.getMethod("getIcon");
-                                        String icon = (String) getIcon.invoke(model, new Object[]{});
-
-                                        Method getDetailUrl = modelClass.getMethod("getDetailUrl");
-                                        String detailUrl = (String) getDetailUrl.invoke(model, new Object[]{});
-
-                                        XposedBridge.log("detailUrl ＝＝＝ ：" + detailUrl);
-
-                                        Method getArticleDetail = modelClass.getMethod("getArticleDetail");
-
-                                        Object getArticleDetailResult = (Object) getArticleDetail.invoke(model, new Object[]{});
-
-                                        String author = (String) XposedHelpers.getObjectField(getArticleDetailResult, "author");
-                                        String content_html = (String) XposedHelpers.getObjectField(getArticleDetailResult, "content_html");
-
-                                        long published_date = (long) XposedHelpers.getObjectField(getArticleDetailResult, "published_date");
-
-                                        //获取视频信息
-
-                                        //获取listview 模版type
-//                                        Method getListViewTemplate = modelClass.getMethod("getType");
-//                                        Object getListViewTemplateResult = (Object) getListViewTemplate.invoke(model, new Object[]{});
-
-                                        // ============= end =============
-                                        if (cur_content_html != null && content_html != null && !cur_content_html.equals(content_html)) {
-
-                                            cur_content_html = content_html;
-
-                                            if (icon != null) {
-                                                bean.setIcon(icon);
-                                            XposedBridge.log("  icon ＝＝＝＝ " + icon);
-                                            }
-                                            if (articlTitle != null) {
-                                                bean.setArticlTitle(articlTitle);
-                                            XposedBridge.log("  articlTitle ＝＝＝＝ " + articlTitle);
-                                            }
-                                            if (app != null) {
-                                                bean.setAppName(app);
-                                            XposedBridge.log("  app ＝＝＝＝ " + app);
-                                            }
-                                            if (getSummaryResult != null) {
-                                                bean.setSummary(getSummaryResult);
-                                            XposedBridge.log("  getSummaryResult ＝＝＝＝ " + getSummaryResult);
-                                            }
-                                            if (author != null) {
-                                                bean.setAuthor(author);
-                                            XposedBridge.log("  author ＝＝＝＝ " + author);
-                                            }
-                                            if (published_date != 0) {
-                                                bean.setPublished_date(published_date);
-                                            XposedBridge.log("  published_date ＝＝＝＝ " + published_date);
-                                            }
-                                            if (content_html != null) {
-                                                bean.setDetailHtml(content_html);
-                                            XposedBridge.log("  content_html ＝＝＝＝ " + content_html);
-                                            }
-
-                                            XposedBridge.log("插入的数据的title为：" + bean.getArticlTitle());
-                                            postDetail(bean);
-                                        }
-//                                        XposedBridge.log("  detailResultMap ＝＝＝＝ " + detailResultMap.size());
-
+//                                        ModelBean bean = new ModelBean();
+//
+////                                        String str1 = paramModel.getArticleDetail().author;
+//                                        Object model = param.args[0];
+////                                        Class Parser = XposedHelpers.findClass("com.wandoujia.api.proto.ArticleDetail", lpparam.classLoader);
+//
+//                                        Method getProvider = modelClass.getMethod("getProvider");
+//                                        Object getProviderResult = (Object) getProvider.invoke(model, new Object[]{});
+//
+//                                        Method getTitle = modelClass.getMethod("getTitle");
+//
+//                                        String articlTitle = (String) getTitle.invoke(model, new Object[]{});
+//                                        String app = (String) getTitle.invoke(getProviderResult, new Object[]{});
+//                                        Method getSummary = modelClass.getMethod("getSummary");
+//                                        String getSummaryResult = (String) getSummary.invoke(model, new Object[]{});
+//
+//
+//                                        Method getIcon = modelClass.getMethod("getIcon");
+//                                        String icon = (String) getIcon.invoke(model, new Object[]{});
+//
+//                                        Method getDetailUrl = modelClass.getMethod("getDetailUrl");
+//                                        String detailUrl = (String) getDetailUrl.invoke(model, new Object[]{});
+//
+//                                        XposedBridge.log("detailUrl ＝＝＝ ：" + detailUrl);
+//
+//                                        Method getArticleDetail = modelClass.getMethod("getArticleDetail");
+//
+//                                        Object getArticleDetailResult = (Object) getArticleDetail.invoke(model, new Object[]{});
+//
+//                                        String author = (String) XposedHelpers.getObjectField(getArticleDetailResult, "author");
+//                                        String content_html = (String) XposedHelpers.getObjectField(getArticleDetailResult, "content_html");
+//
+//                                        long published_date = (long) XposedHelpers.getObjectField(getArticleDetailResult, "published_date");
+//
+//                                        //获取视频信息
+//
+//                                        //获取listview 模版type
+////                                        Method getListViewTemplate = modelClass.getMethod("getType");
+////                                        Object getListViewTemplateResult = (Object) getListViewTemplate.invoke(model, new Object[]{});
+//
+//                                        // ============= end =============
+//                                        if (cur_content_html != null && content_html != null && !cur_content_html.equals(content_html)) {
+//
+//                                            cur_content_html = content_html;
+//
+//                                            if (icon != null) {
+//                                                bean.setIcon(icon);
+//                                                XposedBridge.log("  icon ＝＝＝＝ " + icon);
+//                                            }
+//                                            if (articlTitle != null) {
+//                                                bean.setArticlTitle(articlTitle);
+//                                                XposedBridge.log("  articlTitle ＝＝＝＝ " + articlTitle);
+//                                            }
+//                                            if (app != null) {
+//                                                bean.setAppName(app);
+//                                                XposedBridge.log("  app ＝＝＝＝ " + app);
+//                                            }
+//                                            if (getSummaryResult != null) {
+//                                                bean.setSummary(getSummaryResult);
+//                                                XposedBridge.log("  getSummaryResult ＝＝＝＝ " + getSummaryResult);
+//                                            }
+//                                            if (author != null) {
+//                                                bean.setAuthor(author);
+//                                                XposedBridge.log("  author ＝＝＝＝ " + author);
+//                                            }
+//                                            if (published_date != 0) {
+//                                                bean.setPublished_date(published_date);
+//                                                XposedBridge.log("  published_date ＝＝＝＝ " + published_date);
+//                                            }
+//                                            if (content_html != null) {
+//                                                bean.setDetailHtml(content_html);
+//                                                XposedBridge.log("  content_html ＝＝＝＝ " + content_html);
+//                                            }
+//
+//                                            XposedBridge.log("插入的数据的title为：" + bean.getArticlTitle());
+//                                            postDetail(bean);
+//                                        }
+////                                        XposedBridge.log("  detailResultMap ＝＝＝＝ " + detailResultMap.size());
+//
                                     }
                                 });
 
