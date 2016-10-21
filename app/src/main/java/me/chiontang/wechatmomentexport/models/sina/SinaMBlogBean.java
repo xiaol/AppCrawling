@@ -1,10 +1,7 @@
 package me.chiontang.wechatmomentexport.models.sina;
 
-import android.text.SpannableStringBuilder;
-
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -19,11 +16,14 @@ public class SinaMBlogBean implements Serializable {
     private int userLevel;
     //userName
     private String userName;
+    //高清头像
+    private String avatarHd;
 
     //用户信息
-    private BlogUser mBlogUser;
+//    private BlogUser mBlogUser;
     //创建时间
-    private Date date;
+//    private Date date;
+    private String createDate;
     //发布时间
     private String create;
     //微博发布平台，来自于
@@ -33,12 +33,12 @@ public class SinaMBlogBean implements Serializable {
     //格式化源
     private String formatSourceUrl;
     //微博内容
-    private SpannableStringBuilder blogContent;
+    private String blogContent;
     //图片地址
     private List<PicInfo> picInfos;
 
     //内容标签
-    private MBlogCard mBlogCard;
+    private ArrayList<MBlogCard> mBlogCards;
 
     //微博标签
     private ArrayList<MblogTag> mblogTags;
@@ -50,9 +50,77 @@ public class SinaMBlogBean implements Serializable {
     private int repostsCount;
     //title 标记是否是热门，或者广告
     private String title;
+
+
+    //评论
+    private String commentsUrl;
+    private MediaDataObject mediaDataObject;
+
+
+    public MediaDataObject getMediaDataObject() {
+        return mediaDataObject;
+    }
+
+    public void setMediaDataObject(MediaDataObject mediaDataObject) {
+        this.mediaDataObject = mediaDataObject;
+    }
+
+    public String getCommentsUrl() {
+        int count = 50;
+        int filter_by_author = 0;
+        int page = 1;
+        if (mediaDataObject != null) {
+            this.commentsUrl = "http://api.weibo.cn/2/comments/build_comments?networktype=wifi&max_id=0&is_show_bulletin=2&uicode=10000002&moduleID=700&trim_user=0&is_reload=1&is_encoded=0&c=android&i=b6c200b&s=419334ea&id="+this.commentsUrl+"&ua=Meizu-M355__weibo__6.9.0__android__android4.4.4&wm=9848_0009&aid=01Ar354cap2DzMazi4cfDVZdyXGvhrbdVARjcDpn5c2RVXn8M.&v_f=2&v_p=34&from=1069095010&gsid=_2A251AAYtDeTxGeRP6lIR9inEzD-IHXVXlB7lrDV6PUJbkdANLXnwkWqTSjG5xLENZHY6xuUpOdJoPmo9xQ..&lang=zh_CN&lfid=231091&skin=default&count=20&oldwm=9848_0009&sflag=1&luicode=10000010&fetch_level=0";
+
+        } else {
+            this.commentsUrl = "http://api.weibo.cn/2/comments/show?trim_level=1&networktype=wifi&with_common_cmt_new=1&uicode=10000002&moduleID=700&c=android&i=b6c200b&s=419334ea&id=" + this.commentsUrl + "&ua=Meizu-M355__weibo__6.9.0__android__android4.4.4&wm=9848_0009&aid=01Ar354cap2DzMazi4cfDVZdyXGvhrbdVARjcDpn5c2RVXn8M.&v_f=2&v_p=34&from=1069095010&gsid=_2A251AAYtDeTxGeRP6lIR9inEzD-IHXVXlB7lrDV6PUJbkdANLXnwkWqTSjG5xLENZHY6xuUpOdJoPmo9xQ..&lang=zh_CN&lfid=231091&page=" + page + "&skin=default&trim=1&count=" + count + "&oldwm=9848_0009&sflag=1&related_user=0&luicode=10000010&filter_by_author=" + filter_by_author;
+        }
+
+        return commentsUrl;
+    }
+
+    public void setCommentsUrl(String commentsUrl) {
+        int count = 50;
+        int filter_by_author = 0;
+        int page = 1;
+        if (mediaDataObject != null) {
+            this.commentsUrl = "http://api.weibo.cn/2/comments/build_comments?networktype=wifi&max_id=0&is_show_bulletin=2&uicode=10000002&moduleID=700&trim_user=0&is_reload=1&is_encoded=0&c=android&i=b6c200b&s=419334ea&id="+commentsUrl+"&ua=Meizu-M355__weibo__6.9.0__android__android4.4.4&wm=9848_0009&aid=01Ar354cap2DzMazi4cfDVZdyXGvhrbdVARjcDpn5c2RVXn8M.&v_f=2&v_p=34&from=1069095010&gsid=_2A251AAYtDeTxGeRP6lIR9inEzD-IHXVXlB7lrDV6PUJbkdANLXnwkWqTSjG5xLENZHY6xuUpOdJoPmo9xQ..&lang=zh_CN&lfid=231091&skin=default&count=20&oldwm=9848_0009&sflag=1&luicode=10000010&fetch_level=0";
+
+        } else {
+            this.commentsUrl = "http://api.weibo.cn/2/comments/show?trim_level=1&networktype=wifi&with_common_cmt_new=1&uicode=10000002&moduleID=700&c=android&i=b6c200b&s=419334ea&id=" + commentsUrl + "&ua=Meizu-M355__weibo__6.9.0__android__android4.4.4&wm=9848_0009&aid=01Ar354cap2DzMazi4cfDVZdyXGvhrbdVARjcDpn5c2RVXn8M.&v_f=2&v_p=34&from=1069095010&gsid=_2A251AAYtDeTxGeRP6lIR9inEzD-IHXVXlB7lrDV6PUJbkdANLXnwkWqTSjG5xLENZHY6xuUpOdJoPmo9xQ..&lang=zh_CN&lfid=231091&page=" + page + "&skin=default&trim=1&count=" + count + "&oldwm=9848_0009&sflag=1&related_user=0&luicode=10000010&filter_by_author=" + filter_by_author;
+        }
+    }
+
     //topicTitle
     private ArrayList<String> topicTitles;
 
+    public String getAvatarHd() {
+        return avatarHd;
+    }
+
+    public void setAvatarHd(String avatarHd) {
+        this.avatarHd = avatarHd;
+    }
+
+    public String getCreateDate() {
+        return createDate;
+    }
+
+    public void setCreateDate(String createDate) {
+        this.createDate = createDate;
+    }
+
+    public String getBlogContent() {
+        return blogContent;
+    }
+
+    public ArrayList<MBlogCard> getmBlogCards() {
+        return mBlogCards;
+    }
+
+    public void setmBlogCards(ArrayList<MBlogCard> mBlogCards) {
+        this.mBlogCards = mBlogCards;
+    }
 
     public String getId() {
         return id;
@@ -62,7 +130,7 @@ public class SinaMBlogBean implements Serializable {
         this.id = id;
     }
 
-    public void setBlogContent(SpannableStringBuilder blogContent) {
+    public void setBlogContent(String blogContent) {
         this.blogContent = blogContent;
     }
 
@@ -113,22 +181,22 @@ public class SinaMBlogBean implements Serializable {
     public void setTopicTitles(ArrayList<String> topicTitles) {
         this.topicTitles = topicTitles;
     }
-
-    public BlogUser getmBlogUser() {
-        return mBlogUser;
-    }
-
-    public void setmBlogUser(BlogUser mBlogUser) {
-        this.mBlogUser = mBlogUser;
-    }
-
-    public Date getDate() {
-        return date;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
+//
+//    public BlogUser getmBlogUser() {
+//        return mBlogUser;
+//    }
+//
+//    public void setmBlogUser(BlogUser mBlogUser) {
+//        this.mBlogUser = mBlogUser;
+//    }
+//
+//    public Date getDate() {
+//        return date;
+//    }
+//
+//    public void setDate(Date date) {
+//        this.date = date;
+//    }
 
     public String getCreate() {
         return create;
@@ -152,14 +220,6 @@ public class SinaMBlogBean implements Serializable {
 
     public void setPicInfos(List<PicInfo> picInfos) {
         this.picInfos = picInfos;
-    }
-
-    public MBlogCard getmBlogCard() {
-        return mBlogCard;
-    }
-
-    public void setmBlogCard(MBlogCard mBlogCard) {
-        this.mBlogCard = mBlogCard;
     }
 
     public ArrayList<MblogTag> getMblogTags() {

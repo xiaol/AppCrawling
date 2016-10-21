@@ -4,17 +4,39 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
+import android.util.Log;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
 import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import me.chiontang.wechatmomentexport.models.sina.BlogUser;
+import me.chiontang.wechatmomentexport.models.sina.MBlogCard;
+import me.chiontang.wechatmomentexport.models.sina.MblogTag;
+import me.chiontang.wechatmomentexport.models.sina.MediaDataObject;
+import me.chiontang.wechatmomentexport.models.sina.PicInfo;
+import me.chiontang.wechatmomentexport.models.sina.SinaMBlogBean;
+import me.chiontang.wechatmomentexport.utils.JSONUtils;
 
 import static de.robv.android.xposed.XposedBridge.log;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
@@ -28,6 +50,7 @@ public class SinaHot implements IXposedHookLoadPackage {
     public static final String PACKAGE_NAME = "com.sina.weibo";
     Context appContext = null;
     RequestQueue mQueue;
+    ArrayList<SinaMBlogBean> mBlogs = new ArrayList<>();
 
     /**
      * 需要上传的最终集合
@@ -54,7 +77,7 @@ public class SinaHot implements IXposedHookLoadPackage {
                         }
                         XposedBridge.log("SinaHot hooked.");
                         appContext = ((Activity) param.thisObject).getApplicationContext();
-//                        mQueue = Volley.newRequestQueue(appContext);
+                        mQueue = Volley.newRequestQueue(appContext);
                         hookMethods(lpparam);
                     }
                 });
@@ -71,12 +94,14 @@ public class SinaHot implements IXposedHookLoadPackage {
                 super.afterHookedMethod(param);
                 log("com.sina.weibo.page.DiscoverActivity::::::::::::DiscoverActivity");
 
-                findAndHookMethod("com.sina.weibo.stream.b.d", lpparam.classLoader, "b", List.class, new XC_MethodHook() {
+                findAndHookMethod("com.sina.weibo.stream.b.d", lpparam.classLoader, "a", List.class, List.class, boolean.class, new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         super.afterHookedMethod(param);
                         log("com.sina.weibo.page.view.a======a");
                         final Class StatusClass = XposedHelpers.findClass("com.sina.weibo.models.Status", lpparam.classLoader);
+                        final Class TrendClass = XposedHelpers.findClass("com.sina.weibo.models.Trend", lpparam.classLoader);
+
                         final Class StatusAnnotationsClass = XposedHelpers.findClass("com.sina.weibo.models.StatusAnnotations", lpparam.classLoader);
                         final Class CommentSummaryClass = XposedHelpers.findClass("com.sina.weibo.models.CommentSummary", lpparam.classLoader);
                         final Class MBlogExtendPageClass = XposedHelpers.findClass("com.sina.weibo.models.MBlogExtendPage", lpparam.classLoader);
@@ -89,249 +114,271 @@ public class SinaHot implements IXposedHookLoadPackage {
                         final Class MBlogKeywordClass = XposedHelpers.findClass("com.sina.weibo.models.MBlogKeyword", lpparam.classLoader);
                         final Class JsonButtonClass = XposedHelpers.findClass("com.sina.weibo.card.model.JsonButton", lpparam.classLoader);
                         final Class MblogCardInfoClass = XposedHelpers.findClass("com.sina.weibo.card.model.MblogCardInfo", lpparam.classLoader);
+                        final Class MBlogTagClass = XposedHelpers.findClass("com.sina.weibo.models.MBlogTag", lpparam.classLoader);
+                        final Class MBlogTitleClass = XposedHelpers.findClass("com.sina.weibo.models.MBlogTitle", lpparam.classLoader);
+                        final Class MblogCardClass = XposedHelpers.findClass("com.sina.weibo.models.MblogCard", lpparam.classLoader);
+                        final Class JsonUserInfoClass = XposedHelpers.findClass("com.sina.weibo.models.JsonUserInfo", lpparam.classLoader);
+                        final Class MblogTopicClass = XposedHelpers.findClass("com.sina.weibo.models.MblogTopic", lpparam.classLoader);
+                        final Class MBlogMultiMediaClass = XposedHelpers.findClass("com.sina.weibo.models.MBlogMultiMedia", lpparam.classLoader);
+//                        final Class MBlogTitleInfoClass = XposedHelpers.findClass("com.sina.weibo.models.MBlogTitleInfo", lpparam.classLoader);
+                        final Class MediaDataObjectClass = XposedHelpers.findClass("com.sina.weibo.card.model.MediaDataObject", lpparam.classLoader);
 
                         final List listMessage = (List) param.args[0];
                         log("com.sina.weibo.stream.b.d======b" + listMessage.size() + "Object:::::::::" + listMessage.toString());
-//                        List pageCardInfo = (List) param.getResult();
-                        for (int i = 0; i < listMessage.size(); i++) {
 
-                            //信息来源，手机weibo,还是其他平台
-                            Method getAnnotations = StatusClass.getMethod("getAnnotations");
-                            List annotations = (List) getAnnotations.invoke(listMessage.get(i), new Object[]{});
-                            log(getAnnotations.getName().toString() + ":::::::::" + annotations);
-                            if (annotations != null) {
-//
-                                for (int j = 0; j < annotations.size(); j++) {
-                                    Method getClient_mblogid = StatusAnnotationsClass.getMethod("getClient_mblogid");
-                                    String client_mblogid = (String) getClient_mblogid.invoke(annotations.get(j), new Object[]{});
-                                    log("getClient_mblogid:::::::::" + client_mblogid);
-                                }
+                        for (int i = 0; i < listMessage.size(); i++) {
+                            SinaMBlogBean sinaMBlog = new SinaMBlogBean();
+                            Method getMblogTitle = StatusClass.getMethod("getMblogTitle");
+                            Object mblogTitle = (Object) getMblogTitle.invoke(listMessage.get(i), new Object[]{});
+                            log("getMblogTitle:::::::::" + mblogTitle);
+
+                            if (null != mblogTitle) {
+
+                                Method getTitle = MBlogTitleClass.getMethod("getTitle");
+                                String title = (String) getTitle.invoke(mblogTitle, new Object[]{});
+                                log("getTitle:::::::::" + title);
+                                if (title != null)
+                                    sinaMBlog.setTitle(title);
+
                             }
+                            if (sinaMBlog.getTitle() != null && sinaMBlog.getTitle().equals("广告")) {
+                                continue;
+                            }
+
+                            /*======================用户信息=================================*/
+
+                            Method getUser = StatusClass.getMethod("getUser");
+                            Object user = (Object) getUser.invoke(listMessage.get(i), new Object[]{});
+                            log("getUser:::::::::" + user);
+                            if (null != user) {
+                                BlogUser blogUser = new BlogUser();
+                                //高清图片
+                                Method getAvatarHd = JsonUserInfoClass.getMethod("getAvatarHd");
+                                String avatarHd = (String) getAvatarHd.invoke(user, new Object[]{});
+                                log("getAvatarHd:::::::::" + avatarHd);
+                                blogUser.setAvatarHd(avatarHd);
+                                sinaMBlog.setAvatarHd(avatarHd);
+
+                                //微博名
+                                Method getName = JsonUserInfoClass.getMethod("getName");
+                                String name = (String) getName.invoke(user, new Object[]{});
+                                log("getName:::::::::" + name);
+                                blogUser.setName(name);
+
+
+//                                sinaMBlog.setmBlogUser(blogUser);
+
+
+                            }
+                            /*==========================SinaMBlog实体类==============================*/
+
+                            Method getId = StatusClass.getMethod("getId");
+                            String id = (String) getId.invoke(listMessage.get(i), new Object[]{});
+                            log("getId:::::::::" + id);
+                            sinaMBlog.setId(id);
+//                            sinaMBlog.setCommentsUrl(id);
+                            log("commentsList:" + sinaMBlog.getCommentsUrl());
+
+//                            Method getCreatedDate = StatusClass.getMethod("getCreatedDate");
+//                            Date createdDate = (Date) getCreatedDate.invoke(listMessage.get(i), new Object[]{});
+//                            log("getCreatedDate:::::::::" + createdDate);
+//                            sinaMBlog.setDate(createdDate);
+
+                            //微博距离发布时间
+
+                            Method getCreatedDateStr = StatusClass.getMethod("getCreatedDateStr");
+                            String createdDateStr = (String) getCreatedDateStr.invoke(listMessage.get(i), new Object[]{});
+                            log("getCreatedDateStr:::::::::" + createdDateStr);
+                            sinaMBlog.setCreateDate(createdDateStr);
+
+                            //微博距离发布时间
+                            Method getTimestampText = StatusClass.getMethod("getTimestampText");
+                            String timestampText = (String) getTimestampText.invoke(listMessage.get(i), new Object[]{});
+                            log("getTimestampText:::::::::" + timestampText);
+                            sinaMBlog.setCreate(timestampText);
+
+
+                            Method getSource = StatusClass.getMethod("getSource");
+                            String source = (String) getSource.invoke(listMessage.get(i), new Object[]{});
+                            log("getSource:::::::::" + source);
+                            sinaMBlog.setSource(source);
+
+                            Method getSource_type = StatusClass.getMethod("getSource_type");
+                            int source_type = (int) getSource_type.invoke(listMessage.get(i), new Object[]{});
+                            log("getSource_type:::::::::" + source_type);
+
+                            Method getFormatSourceUrl = StatusClass.getMethod("getFormatSourceUrl");
+                            String formatSourceUrl = (String) getFormatSourceUrl.invoke(listMessage.get(i), new Object[]{});
+                            log("getFormatSourceUrl:::::::::" + formatSourceUrl);
+                            sinaMBlog.setFormatSourceUrl(formatSourceUrl);
+
+                            //内容
+                            Method getMblogContent = StatusClass.getMethod("getMblogContent");
+                            SpannableStringBuilder mblogContent = (SpannableStringBuilder) getMblogContent.invoke(listMessage.get(i), new Object[]{});
+                            log("getMblogContent:::::::::" + mblogContent.toString());
+                            sinaMBlog.setBlogContent(mblogContent.toString());
 
 
                             //点赞数量
-                            Method getAttitudes_count = StatusClass.getMethod("getAttitudes_count");
-                            int attitudes_count = (int) getAttitudes_count.invoke(listMessage.get(i), new Object[]{});
-                            log("getAttitudes_count:::::::::" + attitudes_count);
-
                             Method getAttitudes_status = StatusClass.getMethod("getAttitudes_status");
                             int attitudes_status = (int) getAttitudes_status.invoke(listMessage.get(i), new Object[]{});
                             log("getAttitudes_status:::::::::" + attitudes_status);
+                            sinaMBlog.setAttitudesCount(attitudes_status);
 
                             //转发数量
                             Method getReposts_count = StatusClass.getMethod("getReposts_count");
                             int reposts_count = (int) getReposts_count.invoke(listMessage.get(i), new Object[]{});
                             log("getReposts_count:::::::::" + reposts_count);
+                            sinaMBlog.setRepostsCount(reposts_count);
 
                             //评论数量
                             Method getComments_count = StatusClass.getMethod("getComments_count");
                             int ommencts_count = (int) getComments_count.invoke(listMessage.get(i), new Object[]{});
                             log("getComments_count:::::::::" + ommencts_count);
-
-                            //内容
-                            Method getMblogContent = StatusClass.getMethod("getMblogContent");
-                            SpannableStringBuilder mblogContent = (SpannableStringBuilder) getMblogContent.invoke(listMessage.get(i), new Object[]{});
-                            log("getMblogContent:::::::::" + mblogContent);
+                            sinaMBlog.setRepostsCount(ommencts_count);
 
 
-                            //内容带地址
-                            Method getText = StatusClass.getMethod("getText");
-                            String text = (String) getText.invoke(listMessage.get(i), new Object[]{});
-                            log("getText:::::::::" + text);
+                            Method getTopicList = StatusClass.getMethod("getTopicList");
+                            List topicList = (List) getTopicList.invoke(listMessage.get(i), new Object[]{});
+                            log("getTopicList:::::::::" + topicList);
+                            if (null != topicList) {
+                                ArrayList<String> topicLists = new ArrayList<String>();
+                                for (int j = 0; j < topicList.size(); j++) {
 
+                                    Method getTopic_title = MblogTopicClass.getMethod("getTopic_title");
+                                    String topic_title = (String) getTopic_title.invoke(topicList.get(j), new Object[]{});
+                                    log("getTopic_title:::::::::" + topic_title);
+                                    topicLists.add(topic_title);
 
-                            //null
-                            Method getMblogSubContent = StatusClass.getMethod("getMblogSubContent");
-                            SpannableStringBuilder nmblogSubContent = (SpannableStringBuilder) getMblogSubContent.invoke(listMessage.get(i), new Object[]{});
-                            log("getMblogSubContent:::::::::" + nmblogSubContent);
-
-                            //无
-                            Method getMark = StatusClass.getMethod("getMark");
-                            String mark = (String) getMark.invoke(listMessage.get(i), new Object[]{});
-                            log("getMark:::::::::" + mark);
-
-
-                            Method getPreloadInfo = StatusClass.getMethod("getPreloadInfo");
-                            String preloadInfo = (String) getPreloadInfo.invoke(listMessage.get(i), new Object[]{});
-                            log("getPreloadInfo:::::::::" + preloadInfo);
-
-
-                            //微博距离发布时间
-                            Method getTimestampText = StatusClass.getMethod("getTimestampText");
-                            String timestampText = (String) getTimestampText.invoke(listMessage.get(i), new Object[]{});
-                            log("getTimestampText:::::::::" + timestampText); //
-
-                            //貌似没什么用
-                            Method getCommentSummary = StatusClass.getMethod("getCommentSummary");
-                            Object commentSummary = (Object) getCommentSummary.invoke(listMessage.get(i), new Object[]{});
-                            log("getCommentSummary:::::::::" + commentSummary);
-                            if (commentSummary != null) {
-                                Method getSummaryInfo = CommentSummaryClass.getMethod("getSummaryInfo");
-                                String summaryInfo = (String) getSummaryInfo.invoke(listMessage.get(i), new Object[]{});
-                                log("getSummaryInfo:::::::::" + summaryInfo);
-
-                                Method getStatusComments = CommentSummaryClass.getMethod("getStatusComments");
-                                List statusComments = (List) getStatusComments.invoke(listMessage.get(i), new Object[]{});
-                                log("getStatusComments:::::::::" + statusComments.size());
-
-                            }
-
-                            Method getCommon_struct = StatusClass.getMethod("getCommon_struct");
-                            List common_structs = (List) getCommon_struct.invoke(listMessage.get(i), new Object[]{});
-                            log("getCommon_struct:::::::::" + common_structs.size() + "=======" + common_structs.toString());
-
-//                                for (int j=0;j<common_structs.size();j++) {
-//                                    Method getSummaryInfo = CommentSummaryClass.getMethod("getSummaryInfo");
-//                                    String summaryInfo = (String) getSummaryInfo.invoke(listMessage.get(i), new Object[]{});
-//                                    log("getSummaryInfo:::::::::" + summaryInfo);
-//
-//                                    Method getStatusComments = CommentSummaryClass.getMethod("getStatusComments");
-//                                    List statusComments = (List) getStatusComments.invoke(listMessage.get(i), new Object[]{});
-//                                    log("getStatusComments:::::::::" + statusComments.size());
-//
-//                                }
-
-
-                            Method getComplaint = StatusClass.getMethod("getComplaint");
-                            String gcomplaint = (String) getComplaint.invoke(listMessage.get(i), new Object[]{});
-                            log("getComplaint:::::::::" + gcomplaint);
-
-
-                            Method getComplaintUrl = StatusClass.getMethod("getComplaintUrl");
-                            String complaintUrl = (String) getComplaintUrl.invoke(listMessage.get(i), new Object[]{});
-                            log("getComplaintUrl:::::::::" + complaintUrl);
-
-
-//
-//                            Method getStatusComplaint = StatusClass.getMethod("getStatusComplaint");
-//                            Object statusComplaint = (Object) getStatusComplaint.invoke(listMessage.get(i), new Object[]{});
-//                            log("getStatusComplaint:::::::::" + statusComplaint.toString());
-//
-//                            Method getShowcontent = StatusComplaintClass.getMethod("getShowcontent");
-//                            String showcontent = (String) getShowcontent.invoke(statusComplaint, new Object[]{});
-//                            log("getShowcontent:::::::::" + showcontent);
-
-//
-                            Method getExtraButtonInfo = StatusClass.getMethod("getExtraButtonInfo");
-                            Object extraButtonInfo = (Object) getExtraButtonInfo.invoke(listMessage.get(i), new Object[]{});
-                            log("getExtraButtonInfo:::::::::");
-
-                            Method getForwardSummary = StatusClass.getMethod("getForwardSummary");
-                            Object forwardSummary = (Object) getForwardSummary.invoke(listMessage.get(i), new Object[]{});
-                            log("getForwardSummary:::::::::");
-
-                            Method getGeo = StatusClass.getMethod("getGeo");
-                            Object Geo = (Object) getGeo.invoke(listMessage.get(i), new Object[]{});
-                            log("getGeo:::::::::");
-
-
-                            Method getId = StatusClass.getMethod("getId");
-                            String id = (String) getId.invoke(listMessage.get(i), new Object[]{});
-                            log("getId:::::::::" + id);
-
-                            Method getIdstr = StatusClass.getMethod("getIdstr");
-                            String str = (String) getIdstr.invoke(listMessage.get(i), new Object[]{});
-                            log("getIdstr:::::::::" + str);
-
-
-                            Method getIn_reply_to_screen_name = StatusClass.getMethod("getIn_reply_to_screen_name");
-                            String In_reply_to_screen_name = (String) getIn_reply_to_screen_name.invoke(listMessage.get(i), new Object[]{});
-                            log("getIn_reply_to_screen_name:::::::::" + In_reply_to_screen_name);
-
-                            Method getIn_reply_to_status_id = StatusClass.getMethod("getIn_reply_to_status_id");
-                            String In_reply_to_status_id = (String) getIn_reply_to_status_id.invoke(listMessage.get(i), new Object[]{});
-                            log("getIn_reply_to_status_id:::::::::" + In_reply_to_status_id);
-
-                            Method getIn_reply_to_user_id = StatusClass.getMethod("getIn_reply_to_user_id");
-                            String Reply_to_user_id = (String) getIn_reply_to_user_id.invoke(listMessage.get(i), new Object[]{});
-                            log("getIn_reply_to_user_id:::::::::" + Reply_to_user_id);
-
-
-                            Method getIsShowBulletin = StatusClass.getMethod("getIsShowBulletin");
-                            int IsShowBulletin = (int) getIsShowBulletin.invoke(listMessage.get(i), new Object[]{});
-                            log("getIsShowBulletin:::::::::" + IsShowBulletin);
-
-                            Method is_controlled_by_server = StatusClass.getMethod("isControlledByServer");
-                            int controlled_by_server = (int) is_controlled_by_server.invoke(listMessage.get(i), new Object[]{});
-                            log("is_controlled_by_server:::::::::" + controlled_by_server);
-
-                            Method is_disable_highlight = StatusClass.getMethod("isDisableTimeHiLight");
-                            int disable_highlight = (int) is_disable_highlight.invoke(listMessage.get(i), new Object[]{});
-                            log("is_disable_highlight:::::::::" + disable_highlight);
-
-
-                            Method getKeyword_struct = StatusClass.getMethod("getKeyword_struct");
-                            List keyword_struct = (List) getKeyword_struct.invoke(listMessage.get(i), new Object[]{});
-                            log("getKeyword_struct:::::::::" + keyword_struct);
-
-                            Method getLikeSummary = StatusClass.getMethod("getLikeSummary");
-                            Object likeSummary = (Object) getLikeSummary.invoke(listMessage.get(i), new Object[]{});
-                            log("getLikeSummary:::::::::" + likeSummary);
-
-
-                            Method getLocalMblogId = StatusClass.getMethod("getLocalMblogId");
-                            String localMblogId = (String) getLocalMblogId.invoke(listMessage.get(i), new Object[]{});
-                            log("getLocalMblogId:::::::::" + localMblogId);
-
-
-                            Method getLongText = StatusClass.getMethod("getLongText");
-                            Object longText = (Object) getLongText.invoke(listMessage.get(i), new Object[]{});
-                            log("getLongText:::::::::" + longText);
-
-
-                            Method getIndex = StatusClass.getMethod("getIndex");
-                            int index = (int) getIndex.invoke(listMessage.get(i), new Object[]{});
-                            log("getIndex:::::::::" + index);
-
-                            Method getMblogButtons = StatusClass.getMethod("getMblogButtons");
-                            List mblogButtons = (List) getMblogButtons.invoke(listMessage.get(i), new Object[]{});
-                            log("getMblogButtons:::::::::" + mblogButtons);
-                            if (null != mblogButtons) {
-                                for (int j = 0; j < mblogButtons.size(); j++) {
-                                    Method getAfterDownLoadName = JsonButtonClass.getMethod("getAfterDownLoadName");
-                                    String afterDownLoadName = (String) getAfterDownLoadName.invoke(mblogButtons.get(j), new Object[]{});
-                                    log("getAfterDownLoadName:::::::::" + afterDownLoadName);
-
-                                    Method getMonitorUrl = JsonButtonClass.getMethod("getMonitorUrl");
-                                    String monitorUrl = (String) getMonitorUrl.invoke(mblogButtons.get(j), new Object[]{});
-                                    log("getMonitorUrl:::::::::" + monitorUrl);
-
-
-                                    Method getFollow_res_pic = JsonButtonClass.getMethod("getFollow_res_pic");
-                                    String follow_res_pic = (String) getFollow_res_pic.invoke(mblogButtons.get(j), new Object[]{});
-                                    log("getFollow_res_pic:::::::::" + follow_res_pic);
                                 }
+                                sinaMBlog.setTopicTitles(topicLists);
                             }
 
-                            Method getCommentList = StatusClass.getMethod("getCommentList");
-                            List commentLists = (List) getCommentList.invoke(listMessage.get(i), new Object[]{});
-                            log("getCommentList:::::::::" + commentLists);
 
-                            Method getMblogMenus = StatusClass.getMethod("getMblogMenus");
-                            List mblogMenus = (List) getMblogMenus.invoke(listMessage.get(i), new Object[]{});
-                            log("getMblogMenus:::::::::" + mblogMenus);
-
-                            Method getSummaryType = StatusClass.getMethod("getSummaryType");
-                            int summaryType = (int) getSummaryType.invoke(listMessage.get(i), new Object[]{});
-                            log("getSummaryType:::::::::" + summaryType);
-
-                            Method getMblogType = StatusClass.getMethod("getMblogType");
-                            int mblogType = (int) getMblogType.invoke(listMessage.get(i), new Object[]{});
-                            log("getMblogType:::::::::" + mblogType);
-
-                            Method getMblogTypeName = StatusClass.getMethod("getMblogTypeName");
-                            String mblogTypeName = (String) getMblogTypeName.invoke(listMessage.get(i), new Object[]{});
-                            log("getMblogTypeName:::::::::" + mblogTypeName);
-
-                            Method getMlevel = StatusClass.getMethod("getMlevel");
-                            int mlevel = (int) getMlevel.invoke(listMessage.get(i), new Object[]{});
-                            log("getMlevel:::::::::" + mlevel);
+                            Method getUserId = StatusClass.getMethod("getUserId");
+                            String userId = (String) getUserId.invoke(listMessage.get(i), new Object[]{});
+                            log("getUserId:::::::::" + userId);
+                            sinaMBlog.setUserId(userId);
 
 
-                            Method getMultiMedia = StatusClass.getMethod("getMultiMedia");
-                            List multiMedia = (List) getMultiMedia.invoke(listMessage.get(i), new Object[]{});
-                            log("getMultiMedia:::::::::" + multiMedia);
+                            Method getUserLevel = StatusClass.getMethod("getUserLevel");
+                            int userLevel = (int) getUserLevel.invoke(listMessage.get(i), new Object[]{});
+                            log("getUserLevel:::::::::" + userLevel);
+                            sinaMBlog.setUserLevel(userLevel);
 
+                            Method getUserScreenName = StatusClass.getMethod("getUserScreenName");
+                            String userScreenName = (String) getUserScreenName.invoke(listMessage.get(i), new Object[]{});
+                            log("getUserScreenName:::::::::" + userScreenName);
+                            sinaMBlog.setUserName(userScreenName);
+
+
+
+                            /*============================PicInfo==============================*/
+
+                            Method getPicInfos = StatusClass.getMethod("getPicInfos");
+                            List picInfos = (List) getPicInfos.invoke(listMessage.get(i), new Object[]{});
+                            log("getPicInfos:::::::::" + picInfos);
+
+                            if (null != picInfos) {
+                                ArrayList<PicInfo> picLists = new ArrayList<PicInfo>();
+                                for (int j = 0; j < picInfos.size(); j++) {
+                                    PicInfo picInfo = new PicInfo();
+                                    Method getLargeUrl = PicInfoClass.getMethod("getLargeUrl");
+                                    String largeUrl = (String) getLargeUrl.invoke(picInfos.get(j), new Object[]{});
+                                    log("getLargeUrl:::::::::" + largeUrl);
+                                    picInfo.setPicUrl(largeUrl);
+
+                                    Method getVideo = PicInfoClass.getMethod("getVideo");
+                                    String video = (String) getVideo.invoke(picInfos.get(j), new Object[]{});
+                                    log("getVideo:::::::::" + video);
+                                    picInfo.setVideoUrl(video);
+
+                                    picLists.add(picInfo);
+
+
+                                }
+                                sinaMBlog.setPicInfos(picLists);
+                            }
+                            /*================================MblogTag====================================*/
+
+                            Method getMBlogTag = StatusClass.getMethod("getMBlogTag");
+                            List mBlogTag = (List) getMBlogTag.invoke(listMessage.get(i), new Object[]{});
+                            log("getMBlogTag:::::::::" + mBlogTag);
+                            if (null != mBlogTag) {
+                                ArrayList<MblogTag> mblogTags = new ArrayList<MblogTag>();
+                                for (int j = 0; j < mBlogTag.size(); j++) {
+                                    MblogTag mblogTag = new MblogTag();
+
+
+                                    Method getName = MBlogTagClass.getMethod("getName");
+                                    String name = (String) getName.invoke(mBlogTag.get(j), new Object[]{});
+                                    log("getName:::::::::" + name);
+                                    mblogTag.setTagName(name);
+
+
+                                    Method getUrl_type_pic = MBlogTagClass.getMethod("getUrl_type_pic");
+                                    String url_type_pic = (String) getUrl_type_pic.invoke(mBlogTag.get(j), new Object[]{});
+                                    log("getUrl_type_pic:::::::::" + url_type_pic);
+                                    mblogTag.setTagTypePic(url_type_pic);
+
+
+                                    Method getType = MBlogTagClass.getMethod("getType");
+                                    int type = (int) getType.invoke(mBlogTag.get(j), new Object[]{});
+                                    log("getType:::::::::" + type);
+                                    mblogTag.setTagType(type);
+                                    mblogTags.add(mblogTag);
+
+                                }
+                                sinaMBlog.setMblogTags(mblogTags);
+
+                            }
+
+
+                            /*===========================BlogCard==================================*/
+                            Method getUrlList = StatusClass.getMethod("getUrlList");
+                            List urlList = (List) getUrlList.invoke(listMessage.get(i), new Object[]{});
+                            log("getUrlList:::::::::" + urlList);
+
+                            if (null != urlList) {
+                                ArrayList<MBlogCard> mBlogCards = new ArrayList<MBlogCard>();
+
+                                for (int j = 0; j < urlList.size(); j++) {
+                                    MBlogCard mblogCard = new MBlogCard();
+                                    Method getOri_url = MblogCardClass.getMethod("getOri_url");
+                                    String ori_url = (String) getOri_url.invoke(urlList.get(j), new Object[]{});
+                                    log("getOri_url:::::::::" + ori_url);
+                                    mblogCard.setOriUrl(ori_url);
+//
+                                    Method getUrl_title = MblogCardClass.getMethod("getUrl_title");
+                                    String url_title = (String) getUrl_title.invoke(urlList.get(j), new Object[]{});
+                                    log("getUrl_title:::::::::" + url_title);
+                                    mblogCard.setUrlTitle(url_title);
+
+                                    Method getUrl_type_pic = MblogCardClass.getMethod("getUrl_type_pic");
+                                    String url_type_pic = (String) getUrl_type_pic.invoke(urlList.get(j), new Object[]{});
+                                    log("getUrl_type_pic:::::::::" + url_type_pic);
+                                    mblogCard.setUrlTypePic(url_type_pic);
+
+                                    Method getShort_url = MblogCardClass.getMethod("getShort_url");
+                                    String short_url = (String) getShort_url.invoke(urlList.get(j), new Object[]{});
+                                    log("getShort_url:::::::::" + short_url);
+                                    mblogCard.setShortUrl(short_url);
+
+                                    Method getUrl_type = MblogCardClass.getMethod("getUrl_type");
+                                    String url_type = (String) getUrl_type.invoke(urlList.get(j), new Object[]{});
+                                    log("getUrl_type:::::::::" + url_type);
+                                    mblogCard.setUrlType(url_type);
+
+//                                    Method getHide = MblogCardClass.getMethod("getHide");
+//                                    String hide = (String) getHide.invoke(urlList.get(j), new Object[]{});
+//                                    log("getHide:::::::::" + hide);
+                                    mBlogCards.add(mblogCard);
+                                }
+                                sinaMBlog.setmBlogCards(mBlogCards);
+
+                            }
+
+                            //================================================================
                             Method getCardInfo = StatusClass.getMethod("getCardInfo");
                             Object cardInfo = (Object) getCardInfo.invoke(listMessage.get(i), new Object[]{});
                             log("getCardInfo:::::::::" + cardInfo);
@@ -340,148 +387,77 @@ public class SinaHot implements IXposedHookLoadPackage {
                                 String people_desc = (String) getPeople_desc.invoke(cardInfo, new Object[]{});
                                 log(" getPeople_desc:::::::::" + people_desc);
 
-                            }
+                                Method getMedia = MblogCardInfoClass.getMethod("getMedia");
+                                Object media = (Object) getMedia.invoke(cardInfo, new Object[]{});
+                                log("getMedia:::::::::" + media);
 
-                            Method getPhotoTag = StatusClass.getMethod("getPhotoTag");
-                            List pshotoTag = (List) getPhotoTag.invoke(listMessage.get(i), new Object[]{});
-                            log("getPhotoTag:::::::::" + pshotoTag);
-
-
-                            Method getPicBg = StatusClass.getMethod("getPicBg");
-                            String picBg = (String) getPicBg.invoke(listMessage.get(i), new Object[]{});
-                            log("getPicBg:::::::::" + picBg);
-
-
-                            Method getPic_bg_scheme = StatusClass.getMethod("getPic_bg_scheme");
-                            String pic_bg_scheme = (String) getPic_bg_scheme.invoke(listMessage.get(i), new Object[]{});
-                            log("getPic_bg_scheme:::::::::" + pic_bg_scheme);
-
-                            Method getPic_bg_text = StatusClass.getMethod("getPic_bg_text");
-                            String pic_bg_text = (String) getPic_bg_text.invoke(listMessage.get(i), new Object[]{});
-                            log("getPic_bg_text:::::::::" + pic_bg_text);
-
-                            Method getPicBgType = StatusClass.getMethod("getPicBgType");
-                            int picBgType = (int) getPicBgType.invoke(listMessage.get(i), new Object[]{});
-                            log("getPicBgType:::::::::" + picBgType);
-
-
-                            Method getPicInfos = StatusClass.getMethod("getPicInfos");
-                            List picInfos = (List) getPicInfos.invoke(listMessage.get(i), new Object[]{});
-                            log("getPhotoTag:::::::::" + picInfos);
-                            if (null != picInfos) {
-                                for (int j = 0; j < picInfos.size(); j++) {
-                                    Method getPicSmallUrl = PicInfoClass.getMethod("getPicSmallUrl");
-                                    String picSmallUrl = (String) getPicSmallUrl.invoke(picInfos.get(j), new Object[]{});
-                                    log("getPicSmallUrl:::::::::" + picSmallUrl);
-
-                                    Method getLargeUrl = PicInfoClass.getMethod("getLargeUrl");
-                                    String largeUrl = (String) getLargeUrl.invoke(picInfos.get(j), new Object[]{});
-                                    log("getLargeUrl:::::::::" + largeUrl);
-
-                                    Method getLargestUrl = PicInfoClass.getMethod("getLargestUrl");
-                                    String largestUrl = (String) getLargestUrl.invoke(picInfos.get(j), new Object[]{});
-                                    log("getLargestUrl:::::::::" + largestUrl);
-
-                                    Method getMiddlePlusUrl = PicInfoClass.getMethod("getMiddlePlusUrl");
-                                    String middlePlusUrl = (String) getMiddlePlusUrl.invoke(picInfos.get(j), new Object[]{});
-                                    log("getMiddlePlusUrl:::::::::" + middlePlusUrl);
-
-                                    Method getOriginalUrl = PicInfoClass.getMethod("getOriginalUrl");
-                                    String originalUrl = (String) getOriginalUrl.invoke(picInfos.get(j), new Object[]{});
-                                    log("getOriginalUrl:::::::::" + originalUrl);
-
-                                    Method getPicBigUrl = PicInfoClass.getMethod("getPicBigUrl");
-                                    String picBigUrl = (String) getPicBigUrl.invoke(picInfos.get(j), new Object[]{});
-                                    log("getPicBigUrl:::::::::" + picBigUrl);
-
-                                    Method getPicMiddleUrl = PicInfoClass.getMethod("getPicMiddleUrl");
-                                    String picMiddleUrl = (String) getPicMiddleUrl.invoke(picInfos.get(j), new Object[]{});
-                                    log("getPicMiddleUrl:::::::::" + picMiddleUrl);
+//
+                                if (media != null) {
+                                    MediaDataObject mediaDataObject=new MediaDataObject();
+//
+                                    Method getVideoName = MediaDataObjectClass.getMethod("getVideoName");
+                                    String videoName = (String) getVideoName.invoke(media, new Object[]{});
+                                    log(" getVideoName:::::::::" + videoName);
+                                    mediaDataObject.setName(videoName);
+//
+                                    Method getVideoTime = MediaDataObjectClass.getMethod("getVideoTime");
+                                    String videoTime = (String) getVideoTime.invoke(media, new Object[]{});
+                                    log(" getVideoTime:::::::::" + videoTime);
+                                    mediaDataObject.setDuration(videoTime);
+//
+                                    Method getStreamUrlSD = MediaDataObjectClass.getMethod("getStreamUrlSD");
+                                    String streamUrlSD = (String) getStreamUrlSD.invoke(media, new Object[]{});
+                                    log(" getStreamUrlSD:::::::::" + streamUrlSD);
+                                    mediaDataObject.setStreamUrl(streamUrlSD);
 
 
+                                    log("streamUrlHD="+ JSONUtils.reflectValue(media,"stream_url_hd"));
+                                    mediaDataObject.setStreamUrlHd(JSONUtils.reflectValue(media,"stream_url_hd"));
+                                    log("h5_url="+ JSONUtils.reflectValue(media,"h5_url"));
+                                    mediaDataObject.setH5Url(JSONUtils.reflectValue(media,"h5_url"));
+                                    log("online_users="+ JSONUtils.reflectValue(media,"online_users"));
+                                    mediaDataObject.setOnlineUsers(JSONUtils.reflectValue(media,"online_users"));
+                                    log("online_users_number="+ JSONUtils.reflectValue(media,"online_users_number"));
+//
+                                    mediaDataObject.setOnlineUsersNumber(Integer.parseInt(JSONUtils.reflectValue(media,"online_users_number")));
+//
+//
+                                    sinaMBlog.setMediaDataObject(mediaDataObject);
+//////
+//                                    Method getStreamUrlHD = MediaDataObjectClass.getMethod("getStreamUrlHD");
+//                                    String streamUrlHD = (String) getStreamUrlHD.invoke(media, new Object[]{});
+//                                    log("getStreamUrlHD:::::::::" + streamUrlHD);
+//
+//
+//                                    Method getVideoH5Source = MediaDataObjectClass.getMethod("getVideoH5Source");
+//                                    String videoH5Source = (String) getVideoH5Source.invoke(media, new Object[]{});
+//                                    log(" getVideoH5Source:::::::::" + videoH5Source);
+//
+//                                    Method getOnline_users = MediaDataObjectClass.getMethod("getOnline_users");
+//                                    String online_users = (String) getOnline_users.invoke(media, new Object[]{});
+//                                    log(" getOnline_users:::::::::" + online_users);
+
+//
+//                                    Method getOnline_users_number = MediaDataObjectClass.getMethod("getOnline_users_number");
+//                                    int online_users_number = (int) getOnline_users_number.invoke(media, new Object[]{});
+//                                    log(" getOnline_users_number:::::::::" + online_users_number);
+//
                                 }
-
                             }
 
 
-                            Method getPositive_recom_flag = StatusClass.getMethod("getPositive_recom_flag");
-                            int positive_recom_flag = (int) getPositive_recom_flag.invoke(listMessage.get(i), new Object[]{});
-                            log("getPositive_recom_flag:::::::::" + positive_recom_flag);
 
 
-//                            Method getTitle = StatusComplaintClass.getMethod("getTitle");
-//                            String title = (String) getTitle.invoke(continueTag, new Object[]{});
-//                            log("getTitle:::::::::" + title);
 
 
-//                            Method getContinueTag = StatusClass.getMethod("getContinueTag");
-//                            Object continueTags = (Object) getContinueTag.invoke(listMessage.get(i), new Object[]{});
-//                            log("getContinueTag:::::::::" + continueTags.toString());
-//
-//
-//                            Method getPic = ContinueTagClass.getMethod("getPic");
-//                            String pic = (String) getPic.invoke(continueTags, new Object[]{});
-//                            log("getPic:::::::::" + pic);
-//
-//                            Method getTitle = ContinueTagClass.getMethod("getTitle");
-//                            String title = (String) getTitle.invoke(continueTags, new Object[]{});
-//                            log("getPic:::::::::" + title);
 
 
-//                            Method preloadData = StatusClass.getMethod("preloadData");
-//                            Map mpreloadData = (Map) preloadData.invoke(listMessage.get(i), new Object[]{});
-//                            log("getPreloadArticleIDs:::::::::" + mpreloadData.toString());
-
-
-//                            Method getSummaryInfo = StatusClass.getMethod("getSummaryInfo");
-//                            String summaryInfo = (String) getSummaryInfo.invoke(forwardSummary, new Object[]{});
-//
-//                            log("getCreatedDate:::::::::" + summaryInfo);
-//
-//
-//                            Method getShared_count = StatusClass.getMethod("getShared_count");
-//                            int sharedCount = (int) getShared_count.invoke(listMessage.get(i), new Object[]{});
-//
-//                            log("sharedCount:::::::::" + sharedCount);
-//                            Method getReposts_count = StatusClass.getMethod("getReposts_count");
-//                            int reposts_count = (int) getReposts_count.invoke(listMessage.get(i), new Object[]{});
-//                            log("getReposts_count:::::::::" + reposts_count);
-
-//                            for (int j=0;j<commonStructs.size();j++)
-//                            {
-//
-//                                Method getDesc = MBlogExtendPageClass.getMethod("getDesc");
-//                                String Desc = (String) getDesc.invoke(commonStructs.get(j), new Object[]{});
-//                                log("getDesc==========="+Desc);
-//
-//                            }
-//                            if (commentSummary!=null) {
-//
-//                                Method getSummaryInfo = CommentSummaryClass.getMethod("getSummaryInfo");
-//                                String summaryInfo = (String) getSummaryInfo.invoke(commentSummary, new Object[]{});
-//                                log("getSummaryInfo=======" + summaryInfo);
-//                            }
-
-//                            Method getPic = StatusClass.getMethod("getPic");
-//                            String cardTitle = (String) getPic.invoke(listMessage.get(i), new Object[]{});
-//                            log(getPic.getName().toString() + ":::::::::" + cardTitle);
-//
-//                            Method getArticleDeleteText = StatusClass.getMethod("getArticleDeleteText");
-//                            String articleDeleteText = (String) getArticleDeleteText.invoke(listMessage.get(i), new Object[]{});
-//                            log(getArticleDeleteText.getName().toString() + ":::::::::" + articleDeleteText);
-
-//                            Method getAttitudes_count = StatusClass.getMethod("getAttitudes_count");
-//                            int attitudes_count = (int) getAttitudes_count.invoke(listMessage.get(i), new Object[]{});
-//                            log(getAttitudes_count.getName().toString() + ":::::::::" + attitudes_count);
-//
-//                            Method getAttitudes_status = StatusClass.getMethod("getAttitudes_status");
-//                            int attitudes_status = (int) getAttitudes_status.invoke(listMessage.get(i), new Object[]{});
-//                            log(getAttitudes_status.getName().toString() + ":::::::::" + attitudes_status);
-//
-//
-
+                            /*=====================================================================*/
+                            mBlogs.add(sinaMBlog);
 
                         }
+                        postDetail(mBlogs);
+                        mBlogs.clear();
 
 
                     }
@@ -492,6 +468,136 @@ public class SinaHot implements IXposedHookLoadPackage {
         });
 
     }
+
+
+    private void postDetail(final ArrayList<SinaMBlogBean> appendList) throws JSONException {
+        if (appendList == null || appendList.size() == 0) {
+            return;
+        }
+
+        XposedBridge.log("postDetail ＝＝＝＝");
+        final JSONArray ab = getJsonArray(appendList);
+
+        XposedBridge.log("JSONArray ＝＝＝" + ab);
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://120.27.162.110:9000/weibo_news", new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.d("TAG", response);
+                XposedBridge.log("onResponse ＝＝＝" + response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("TAG", error.getMessage(), error);
+                XposedBridge.log("onErrorResponse ＝＝＝" + error.getMessage());
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> map = new HashMap<String, String>();
+
+
+                map.put("news_list", ab.toString());
+
+                XposedBridge.log("ab.toString() ＝＝＝" + ab.toString());
+                return map;
+            }
+        };
+        mQueue.add(stringRequest);
+
+
+    }
+
+    public static JSONArray getJsonArray(List<SinaMBlogBean> list) throws JSONException {
+        JSONArray jsonArray = new JSONArray();
+        for (int i = 0; i < list.size(); i++) {
+            SinaMBlogBean sinaBean = list.get(i);
+            JSONObject jsonObject = new JSONObject();
+            if (sinaBean.getPicInfos() != null) {
+                JSONArray jo = new JSONArray();
+                for (int j = 0; j < sinaBean.getPicInfos().size(); j++) {
+                    jo.put(reflect(sinaBean.getPicInfos().get(j)));
+                }
+                jsonObject.put("picinfos", jo);
+            }
+
+            if (sinaBean.getmBlogCards() != null) {
+                JSONArray jo = new JSONArray();
+                for (int j = 0; j < sinaBean.getmBlogCards().size(); j++) {
+                    jo.put(reflect(sinaBean.getmBlogCards().get(j)));
+                }
+
+                jsonObject.put("mblogcards", jo);
+            }
+
+
+            if (sinaBean.getMblogTags() != null) {
+                JSONArray jo = new JSONArray();
+                for (int j = 0; j < sinaBean.getMblogTags().size(); j++) {
+                    jo.put(reflect(sinaBean.getMblogTags().get(j)));
+                }
+
+                jsonObject.put("mblogtags", jo);
+            }
+            if (sinaBean.getTopicTitles() != null && sinaBean.getTopicTitles().size() != 0) {
+                JSONArray ja = new JSONArray();
+                for (int j = 0; j < sinaBean.getTopicTitles().size(); j++) {
+                    ja.put(sinaBean.getTopicTitles().get(j));
+                }
+                jsonObject.put("toptitle", ja);
+            }
+
+            if (sinaBean.getMediaDataObject() != null) {
+
+                jsonObject.put("video", reflect(sinaBean.getMediaDataObject()));
+            }
+
+            jsonObject.put("status", reflect(sinaBean));
+
+
+            jsonArray.put(jsonObject);
+        }
+
+        return jsonArray;
+    }
+
+
+    public static <T> JSONObject reflect(T obj) {
+        JSONObject jo = new JSONObject();
+        if (null == obj)
+            return jo;
+
+        try {
+            Field[] fields = obj.getClass().getDeclaredFields();
+
+            String[] types = {"int", "java.lang.String", "boolean", "char", "float", "double", "long", "short", "byte"};
+            String[] value = {"Integer", "java.lang.String", "java.lang.Boolean", "java.lang.Character", "java.lang.Float", "java.lang.Double", "java.lang.Long", "java.lang.Short", "java.lang.Byte", "java.util.Date"};
+            for (int j = 0; j < fields.length; j++) {
+                fields[j].setAccessible(true);
+                // 字段名
+//                System.out.print(fields[j].getName() + ":");
+
+                // 字段值
+                for (int i = 0; i < types.length; i++) {
+                    if (fields[j].getType().getName()
+                            .equalsIgnoreCase(types[i]) || fields[j].getType().getName().equalsIgnoreCase(value[i])) {
+                        try {
+//                            System.out.print(fields[j].get(obj) + "");
+                            jo.put(fields[j].getName() + "", fields[j].get(obj) + "");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+        }
+        return jo;
+    }
+
+
 
 
 }

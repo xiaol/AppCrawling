@@ -237,10 +237,15 @@ public class JiKe_262 implements IXposedHookLoadPackage {
 
 
                                         //只获取更新之后的数据。之前的数据不加入list
-                                        for (int i = listSize; i < listMessageSize; i++) {
+                                        for (int i = 0; i < listMessageSize; i++) {
+
                                             Class feedMessageBean = XposedHelpers.findClass("com.ruguoapp.jike.model.bean.feed.FeedMessageBean", lpparam.classLoader);
+
+                                            if (!listMessage.get(i).getClass().equals(feedMessageBean)) {
+                                                continue;
+                                            }
                                             Method feedEntity = feedMessageBean.getMethod("feedEntity");
-                                            Object messageBean= (Object) feedEntity.invoke(listMessage.get(i), new Object[]{});
+                                            Object messageBean = (Object) feedEntity.invoke(listMessage.get(i), new Object[]{});
 
 //                                            Method getCollectCount = messageObj.getMethod("getCollectCount");
 //                                            int collectCount = (int) getCollectCount.invoke(messageBean, new Object[]{});
@@ -342,10 +347,15 @@ public class JiKe_262 implements IXposedHookLoadPackage {
                                             bean.setPictureUrl(imageList);
                                             appendList.add(bean);
                                         }
-                                        listSize = listMessageSize;
+//                                        listSize = listMessageSize;
+
+                                        XposedBridge.log("开始发送数据");
 
                                         //发送获取数据
                                         postDetail(appendList);
+                                        appendList.clear();
+
+                                        XposedBridge.log("发送数据");
 
 
                                     }
