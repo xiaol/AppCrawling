@@ -1,7 +1,6 @@
 package me.chiontang.wechatmomentexport.models;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 
 /**
  * Created by wudi on 16/4/22.
@@ -9,7 +8,9 @@ import java.util.Comparator;
 public class JiKeBean {
 
 
-
+    /**
+     * 文章标题
+     */
 
     String app_name;
     /**
@@ -23,7 +24,7 @@ public class JiKeBean {
     long published_date;
 
     /**
-     * 文章详情 html
+     * 文章详情 html 外联，有可能没有
      */
     String link;
 

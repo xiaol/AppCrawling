@@ -81,6 +81,17 @@ public class MediaDataObject implements Serializable {
     //播放次数
     private int onlineUsersNumber;
     private String onlineUsers;
+    //图片背景
+    private String pagePic;
+
+
+    public String getPageIcon() {
+        return pagePic;
+    }
+
+    public void setPageIcon(String pageIcon) {
+        this.pagePic = pageIcon;
+    }
 
     public String getName() {
         return name;

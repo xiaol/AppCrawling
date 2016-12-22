@@ -52,6 +52,8 @@ public class SinaHot implements IXposedHookLoadPackage {
     RequestQueue mQueue;
     ArrayList<SinaMBlogBean> mBlogs = new ArrayList<>();
 
+
+
     /**
      * 需要上传的最终集合
      */
@@ -334,6 +336,11 @@ public class SinaHot implements IXposedHookLoadPackage {
                             }
 
 
+                            Method getMultiMedia = StatusClass.getMethod("getMultiMedia");
+                            List multiMedia = (List) getMultiMedia.invoke(listMessage.get(i), new Object[]{});
+                            log("getMultiMedia:::::::::" + multiMedia);
+
+
                             /*===========================BlogCard==================================*/
                             Method getUrlList = StatusClass.getMethod("getUrlList");
                             List urlList = (List) getUrlList.invoke(listMessage.get(i), new Object[]{});
@@ -383,18 +390,41 @@ public class SinaHot implements IXposedHookLoadPackage {
                             Object cardInfo = (Object) getCardInfo.invoke(listMessage.get(i), new Object[]{});
                             log("getCardInfo:::::::::" + cardInfo);
                             if (null != cardInfo) {
+
+//                                JSONUtils.reflectValue(cardInfo);
+
                                 Method getPeople_desc = MblogCardInfoClass.getMethod("getPeople_desc");
                                 String people_desc = (String) getPeople_desc.invoke(cardInfo, new Object[]{});
                                 log(" getPeople_desc:::::::::" + people_desc);
 
+//
+//                                log("content1="+ JSONUtils.reflectValue(cardInfo,"content1"));
+//                                log("content2="+ JSONUtils.reflectValue(cardInfo,"content2"));
+//                                log("content3="+ JSONUtils.reflectValue(cardInfo,"content3"));
+//                                log("content4="+ JSONUtils.reflectValue(cardInfo,"content4"));
+//                                log("contentPic="+ JSONUtils.reflectValue(cardInfo,"contentPic"));
+//                                log("content_data="+ JSONUtils.reflectValue(cardInfo,"content_data"));
+//                                log("content1_icon="+ JSONUtils.reflectValue(cardInfo,"content1_icon"));
+//                                log("monitorUrl="+ JSONUtils.reflectValue(cardInfo,"monitorUrl"));
+//                                log("page_url="+ JSONUtils.reflectValue(cardInfo,"page_url"));
+                                log("page_pic="+ JSONUtils.reflectValue(cardInfo,"page_pic"));
+                                log("object_type="+ JSONUtils.reflectValue(cardInfo,"object_type"));
+                                String objectType=JSONUtils.reflectValue(cardInfo,"object_type");
+                                String pagePic= JSONUtils.reflectValue(cardInfo,"page_pic");
                                 Method getMedia = MblogCardInfoClass.getMethod("getMedia");
                                 Object media = (Object) getMedia.invoke(cardInfo, new Object[]{});
                                 log("getMedia:::::::::" + media);
+
+
 
 //
                                 if (media != null) {
                                     MediaDataObject mediaDataObject=new MediaDataObject();
 //
+//                                    Method getAppIcon = MediaDataObjectClass.getMethod("getAppIcon");
+//                                    String appIcon = (String) getAppIcon.invoke(cardInfo, new Object[]{});
+//                                    log("getAppIcon:::::::::" + appIcon);
+
                                     Method getVideoName = MediaDataObjectClass.getMethod("getVideoName");
                                     String videoName = (String) getVideoName.invoke(media, new Object[]{});
                                     log(" getVideoName:::::::::" + videoName);
@@ -418,6 +448,18 @@ public class SinaHot implements IXposedHookLoadPackage {
                                     log("online_users="+ JSONUtils.reflectValue(media,"online_users"));
                                     mediaDataObject.setOnlineUsers(JSONUtils.reflectValue(media,"online_users"));
                                     log("online_users_number="+ JSONUtils.reflectValue(media,"online_users_number"));
+                                    log("h265_mp4_hd="+ JSONUtils.reflectValue(media,"h265_mp4_hd"));
+                                    log("inch_4_mp4_hd="+ JSONUtils.reflectValue(media,"inch_4_mp4_hd"));
+                                    log("inch_5_5_mp4_hd="+ JSONUtils.reflectValue(media,"inch_5_5_mp4_hd"));
+                                    log("inch_5_mp4_hd="+ JSONUtils.reflectValue(media,"inch_5_mp4_hd"));
+//                                    log("live_source_icon="+ JSONUtils.reflectValue(media,"live_source_icon"));
+//                                    log("video_feed_title="+ JSONUtils.reflectValue(media,"video_feed_title"));
+//                                    log("video_local_path="+ JSONUtils.reflectValue(media,"video_local_path"));
+                                    if (objectType.equals("video"))
+                                    {
+                                        mediaDataObject.setPageIcon(pagePic);
+                                    }
+
 //
                                     mediaDataObject.setOnlineUsersNumber(Integer.parseInt(JSONUtils.reflectValue(media,"online_users_number")));
 //

@@ -91,6 +91,7 @@ public class Main2 implements IXposedHookLoadPackage {
     }
 
 
+
     private void postDetail(final ModelBean bean) {
         if (bean == null) {
             return;
