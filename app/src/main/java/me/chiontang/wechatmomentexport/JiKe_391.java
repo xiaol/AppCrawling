@@ -43,10 +43,7 @@ import me.chiontang.wechatmomentexport.models.Tweet;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
-/**
- * 2.5.3版本即刻
- */
-public class JiKe implements IXposedHookLoadPackage {
+public class JiKe_391 implements IXposedHookLoadPackage {
 
     Tweet currentTweet = new Tweet();
     ArrayList<Tweet> tweetList = new ArrayList<Tweet>();
@@ -73,7 +70,7 @@ public class JiKe implements IXposedHookLoadPackage {
         XposedBridge.log("handleLoadPackage ===== " + lpparam.packageName);
         Config.enabled = true;
 
-        findAndHookMethod("com.ruguoapp.jike.ui.activity.MainActivity", lpparam.classLoader, "onCreate",
+        findAndHookMethod("com.ruguoapp.jike.business.main.ui.MainActivity", lpparam.classLoader, "onCreate",
                 Bundle.class, new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
@@ -154,6 +151,7 @@ public class JiKe implements IXposedHookLoadPackage {
         mQueue.add(stringRequest);
     }
 
+
     private void postDetail(final ArrayList<JiKeBean> appendList) throws JSONException {
         if (appendList == null || appendList.size() == 0) {
             return;
@@ -166,8 +164,9 @@ public class JiKe implements IXposedHookLoadPackage {
         final JSONArray ab = getJsonArray(appendList);
 
         XposedBridge.log("JSONArray ＝＝＝" + ab);
+        //莱特提供地址
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://114.55.110.143:9001/jike_news", new Response.Listener<String>() {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://114.55.110.143:9000/jike_news", new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 Log.d("TAG", response);
@@ -232,17 +231,19 @@ public class JiKe implements IXposedHookLoadPackage {
          * @param parameterTypesAndCallback hook回调
          * @return
          */
-        findAndHookMethod("com.ruguoapp.jike.ui.fragment.MessageFragment", lpparam.classLoader, "onCreate",
-                Bundle.class, new XC_MethodHook() {
+        findAndHookMethod("com.ruguoapp.jike.business.feed.ui.bc", lpparam.classLoader, "b",
+                View.class,Bundle.class, new XC_MethodHook() {
 
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         super.afterHookedMethod(param);
                         Config.enabled = true;
                         XposedBridge.log("com.ruguoapp.jike.ui.adapter.MessageViewHolder AAAAAAAAAAAAAA");
-                        findAndHookMethod("com.ruguoapp.jike.ui.adapter.v", lpparam.classLoader, "e", List.class,
+                        findAndHookMethod("com.ruguoapp.jike.view.a", lpparam.classLoader, "e", List.class,
                                 new XC_MethodHook() {
 
+
+                                    private JiKeBean bean;
 
                                     @Override
                                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
@@ -268,80 +269,88 @@ public class JiKe implements IXposedHookLoadPackage {
 //                                            return;
 //                                        }
 
-                                        Class messageObj = XposedHelpers.findClass("com.ruguoapp.jike.model.bean.MessageBean", lpparam.classLoader);
+                                        Class messageObj = XposedHelpers.findClass("com.ruguoapp.jike.data.message.MessageBean", lpparam.classLoader);
                                         /** 本次新增的list*/
                                         ArrayList<JiKeBean> appendList = new ArrayList<JiKeBean>(20);
 
 
                                         //只获取更新之后的数据。之前的数据不加入list
-                                        for (int i = listSize; i < listMessageSize; i++) {
+                                        for (int i = 0; i < listMessageSize; i++) {
+
+                                            Class feedMessageBean = XposedHelpers.findClass("com.ruguoapp.jike.data.feed.FeedRecommendMessageBean", lpparam.classLoader);
+
+                                            if (!listMessage.get(i).getClass().equals(feedMessageBean)) {
+                                                continue;
+                                            }
+                                            Method feedEntity = feedMessageBean.getMethod("entity");
+                                            Object messageBean = (Object) feedEntity.invoke(listMessage.get(i), new Object[]{});
 
 //                                            Method getCollectCount = messageObj.getMethod("getCollectCount");
-//                                            int collectCount = (int) getCollectCount.invoke(listMessage.get(i), new Object[]{});
+//                                            int collectCount = (int) getCollectCount.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("collectCount  param ＝＝＝＝ " + collectCount);
 
 //                                            Method getCollectedTime = messageObj.getMethod("getCollectedTime");
-//                                            long collectedTime = (long) getCollectedTime.invoke(listMessage.get(i), new Object[]{});
+//                                            long collectedTime = (long) getCollectedTime.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("collectedTime  param ＝＝＝＝ " + collectedTime);
 
-                                            JiKeBean bean = new JiKeBean();
+                                            bean = new JiKeBean();
 
                                             Method getContent = messageObj.getMethod("getContent");
-                                            String collected = (String) getContent.invoke(listMessage.get(i), new Object[]{});
+                                            String collected = (String) getContent.invoke(messageBean, new Object[]{});
                                             XposedBridge.log("collected  param ＝＝＝＝ " + collected);
                                             bean.setSummary(collected);
 
                                             Method getCreatedAt = messageObj.getMethod("getCreatedAt");
-                                            long createdAt = (long) getCreatedAt.invoke(listMessage.get(i), new Object[]{});
+                                            long createdAt = (long) getCreatedAt.invoke(messageBean, new Object[]{});
                                             XposedBridge.log("createdAt  param ＝＝＝＝ " + createdAt);
                                             bean.setPublished_date(createdAt);
 //                                            Method getId = messageObj.getMethod("getId");
-//                                            String id = (String) getId.invoke(listMessage.get(i), new Object[]{});
+//                                            String id = (String) getId.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("id  param ＝＝＝＝ " + id);
 
                                             Method getLinkUrl = messageObj.getMethod("getLinkUrl");
-                                            String linkUrl = (String) getLinkUrl.invoke(listMessage.get(i), new Object[]{});
+                                            String linkUrl = (String) getLinkUrl.invoke(messageBean, new Object[]{});
                                             XposedBridge.log("linkUrl  param ＝＝＝＝ " + linkUrl);
                                             bean.setLink(linkUrl);
 
 //                                            Method getMessageId = messageObj.getMethod("getMessageId");
-//                                            int messageId = (int) getMessageId.invoke(listMessage.get(i), new Object[]{});
+//                                            int messageId = (int) getMessageId.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("messageId  param ＝＝＝＝ " + messageId);
 
 //                                            Method getObjectId = messageObj.getMethod("getObjectId");
-//                                            String objectId = (String) getObjectId.invoke(listMessage.get(i), new Object[]{});
+//                                            String objectId = (String) getObjectId.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("objectId  param ＝＝＝＝ " + objectId);
 
 //                                            Method getOriginUrl = messageObj.getMethod("getOriginUrl");
-//                                            String originUrl = (String) getOriginUrl.invoke(listMessage.get(i), new Object[]{});
+//                                            String originUrl = (String) getOriginUrl.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("originUrl  param ＝＝＝＝ " + originUrl);
 
 //                                            Method getSourceRawValue = messageObj.getMethod("getSourceRawValue");
-//                                            String sourceRawValue = (String) getSourceRawValue.invoke(listMessage.get(i), new Object[]{});
+//                                            String sourceRawValue = (String) getSourceRawValue.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("sourceRawValue  param ＝＝＝＝ " + sourceRawValue);
 
 
                                             Method getTitle = messageObj.getMethod("getTitle");
-                                            String title = (String) getTitle.invoke(listMessage.get(i), new Object[]{});
+                                            String title = (String) getTitle.invoke(messageBean, new Object[]{});
                                             XposedBridge.log("title  param ＝＝＝＝ " + title);
                                             bean.setApp_name(title);
 
 //                                            Method getTopic = messageObj.getMethod("getTopic");
-//                                            String topic = (String) getTopic.invoke(listMessage.get(i), new Object[]{});
+//                                            String topic = (String) getTopic.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("topic  param ＝＝＝＝ " + topic);
 
 
 //                                            Method getTopicObjectId = messageObj.getMethod("getTopicObjectId");
-//                                            String topicObjectId = (String) getTopicObjectId.invoke(listMessage.get(i), new Object[]{});
+//                                            String topicObjectId = (String) getTopicObjectId.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("topicObjectId  param ＝＝＝＝ " + topicObjectId);
 
 //                                            Method getUpdatedAt = messageObj.getMethod("getUpdatedAt");
-//                                            long updatedAt = (long) getUpdatedAt.invoke(listMessage.get(i), new Object[]{});
+//                                            long updatedAt = (long) getUpdatedAt.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("updatedAt  param ＝＝＝＝ " + updatedAt);
 
 
 //                                            Method getPictureUrls = messageObj.getMethod("getPictureUrls");
-//                                            List pictureUrls = (List) getPictureUrls.invoke(listMessage.get(i), new Object[]{});
+//                                            List pictureUrls = (List) getPictureUrls.invoke(messageBean, new Object[]{});
 //                                            XposedBridge.log("pictureUrls  param ＝＝＝＝ " + pictureUrls.toString());
 
 
@@ -351,14 +360,14 @@ public class JiKe implements IXposedHookLoadPackage {
 //                                            field.get(new Object());
 //                                           String imagelist = (String) messageObj.forName("pictureUrls");
                                             Field f = XposedHelpers.findField(messageObj, "pictureUrls");
-                                            ArrayList pictureUrlslist = (ArrayList) f.get(listMessage.get(i));
+                                            ArrayList pictureUrlslist = (ArrayList) f.get(messageBean);
 
 
                                             XposedBridge.log("pictureUrls  asdfasdfasf ＝＝＝＝ " + pictureUrlslist.toString());
 
 
                                             ArrayList<String> imageList = new ArrayList<String>();
-                                            Class pictureUrlsClass = XposedHelpers.findClass("com.ruguoapp.jike.model.bean.PictureUrlsBean", lpparam.classLoader);
+                                            Class pictureUrlsClass = XposedHelpers.findClass("com.ruguoapp.jike.data.message.PictureUrlsBean", lpparam.classLoader);
                                             for (int j = 0; j < pictureUrlslist.size(); j++) {
 //                                                Method getPicUrl = pictureUrlsClass.getMethod("getPicUrl");
 //                                                String picUrl = (String) getPicUrl.invoke(imageList.get(j), new Object[]{});
@@ -374,13 +383,17 @@ public class JiKe implements IXposedHookLoadPackage {
 //                                                XposedBridge.log("pictureUrls.get" + j + " middlePicUrl  param ＝＝＝＝ " + middlePicUrl);
                                             }
                                             bean.setPictureUrl(imageList);
-                                            appendList.add(bean);
-                                            postDetailTest(bean);
+//                                            appendList.add(bean);
                                         }
-                                        listSize = listMessageSize;
+//                                        listSize = listMessageSize;
+
+                                        XposedBridge.log("开始发送数据");
 
                                         //发送获取数据
-//                                        postDetail(appendList);
+                                        postDetailTest(bean);
+//                                        appendList.clear();
+
+                                        XposedBridge.log("发送数据");
 
 
                                     }

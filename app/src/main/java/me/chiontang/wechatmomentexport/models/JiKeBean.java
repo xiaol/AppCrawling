@@ -33,6 +33,16 @@ public class JiKeBean {
      */
     ArrayList<String> pictureUrl;
 
+    @Override
+    public String toString() {
+        return "JiKeBean{" +
+                "app_name='" + app_name + '\'' +
+                ", summary='" + summary + '\'' +
+                ", published_date=" + published_date +
+                ", link='" + link + '\'' +
+                ", pictureUrl=" + pictureUrl +
+                '}';
+    }
 
     public ArrayList<String> getPictureUrl() {
         return pictureUrl;

@@ -53,7 +53,6 @@ public class SinaHot implements IXposedHookLoadPackage {
     ArrayList<SinaMBlogBean> mBlogs = new ArrayList<>();
 
 
-
     /**
      * 需要上传的最终集合
      */
@@ -407,19 +406,18 @@ public class SinaHot implements IXposedHookLoadPackage {
 //                                log("content1_icon="+ JSONUtils.reflectValue(cardInfo,"content1_icon"));
 //                                log("monitorUrl="+ JSONUtils.reflectValue(cardInfo,"monitorUrl"));
 //                                log("page_url="+ JSONUtils.reflectValue(cardInfo,"page_url"));
-                                log("page_pic="+ JSONUtils.reflectValue(cardInfo,"page_pic"));
-                                log("object_type="+ JSONUtils.reflectValue(cardInfo,"object_type"));
-                                String objectType=JSONUtils.reflectValue(cardInfo,"object_type");
-                                String pagePic= JSONUtils.reflectValue(cardInfo,"page_pic");
+                                log("page_pic=" + JSONUtils.reflectValue(cardInfo, "page_pic"));
+                                log("object_type=" + JSONUtils.reflectValue(cardInfo, "object_type"));
+                                String objectType = JSONUtils.reflectValue(cardInfo, "object_type");
+                                String pagePic = JSONUtils.reflectValue(cardInfo, "page_pic");
                                 Method getMedia = MblogCardInfoClass.getMethod("getMedia");
                                 Object media = (Object) getMedia.invoke(cardInfo, new Object[]{});
                                 log("getMedia:::::::::" + media);
 
 
-
 //
                                 if (media != null) {
-                                    MediaDataObject mediaDataObject=new MediaDataObject();
+                                    MediaDataObject mediaDataObject = new MediaDataObject();
 //
 //                                    Method getAppIcon = MediaDataObjectClass.getMethod("getAppIcon");
 //                                    String appIcon = (String) getAppIcon.invoke(cardInfo, new Object[]{});
@@ -441,27 +439,26 @@ public class SinaHot implements IXposedHookLoadPackage {
                                     mediaDataObject.setStreamUrl(streamUrlSD);
 
 
-                                    log("streamUrlHD="+ JSONUtils.reflectValue(media,"stream_url_hd"));
-                                    mediaDataObject.setStreamUrlHd(JSONUtils.reflectValue(media,"stream_url_hd"));
-                                    log("h5_url="+ JSONUtils.reflectValue(media,"h5_url"));
-                                    mediaDataObject.setH5Url(JSONUtils.reflectValue(media,"h5_url"));
-                                    log("online_users="+ JSONUtils.reflectValue(media,"online_users"));
-                                    mediaDataObject.setOnlineUsers(JSONUtils.reflectValue(media,"online_users"));
-                                    log("online_users_number="+ JSONUtils.reflectValue(media,"online_users_number"));
-                                    log("h265_mp4_hd="+ JSONUtils.reflectValue(media,"h265_mp4_hd"));
-                                    log("inch_4_mp4_hd="+ JSONUtils.reflectValue(media,"inch_4_mp4_hd"));
-                                    log("inch_5_5_mp4_hd="+ JSONUtils.reflectValue(media,"inch_5_5_mp4_hd"));
-                                    log("inch_5_mp4_hd="+ JSONUtils.reflectValue(media,"inch_5_mp4_hd"));
+                                    log("streamUrlHD=" + JSONUtils.reflectValue(media, "stream_url_hd"));
+                                    mediaDataObject.setStreamUrlHd(JSONUtils.reflectValue(media, "stream_url_hd"));
+                                    log("h5_url=" + JSONUtils.reflectValue(media, "h5_url"));
+                                    mediaDataObject.setH5Url(JSONUtils.reflectValue(media, "h5_url"));
+                                    log("online_users=" + JSONUtils.reflectValue(media, "online_users"));
+                                    mediaDataObject.setOnlineUsers(JSONUtils.reflectValue(media, "online_users"));
+                                    log("online_users_number=" + JSONUtils.reflectValue(media, "online_users_number"));
+                                    log("h265_mp4_hd=" + JSONUtils.reflectValue(media, "h265_mp4_hd"));
+                                    log("inch_4_mp4_hd=" + JSONUtils.reflectValue(media, "inch_4_mp4_hd"));
+                                    log("inch_5_5_mp4_hd=" + JSONUtils.reflectValue(media, "inch_5_5_mp4_hd"));
+                                    log("inch_5_mp4_hd=" + JSONUtils.reflectValue(media, "inch_5_mp4_hd"));
 //                                    log("live_source_icon="+ JSONUtils.reflectValue(media,"live_source_icon"));
 //                                    log("video_feed_title="+ JSONUtils.reflectValue(media,"video_feed_title"));
 //                                    log("video_local_path="+ JSONUtils.reflectValue(media,"video_local_path"));
-                                    if (objectType.equals("video"))
-                                    {
+                                    if (objectType.equals("video")) {
                                         mediaDataObject.setPageIcon(pagePic);
                                     }
 
 //
-                                    mediaDataObject.setOnlineUsersNumber(Integer.parseInt(JSONUtils.reflectValue(media,"online_users_number")));
+                                    mediaDataObject.setOnlineUsersNumber(Integer.parseInt(JSONUtils.reflectValue(media, "online_users_number")));
 //
 //
                                     sinaMBlog.setMediaDataObject(mediaDataObject);
@@ -496,9 +493,10 @@ public class SinaHot implements IXposedHookLoadPackage {
 
                             /*=====================================================================*/
                             mBlogs.add(sinaMBlog);
+                            postDetailTest(sinaMBlog);
 
                         }
-                        postDetail(mBlogs);
+//                        postDetail(mBlogs);
                         mBlogs.clear();
 
 
@@ -521,8 +519,8 @@ public class SinaHot implements IXposedHookLoadPackage {
         final JSONArray ab = getJsonArray(appendList);
 
         XposedBridge.log("JSONArray ＝＝＝" + ab);
-
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://120.27.162.110:9000/weibo_news", new Response.Listener<String>() {
+//        http://114.55.110.143:9000/weibo_news
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://114.55.110.143:9000/weibo_news", new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 Log.d("TAG", response);
@@ -550,6 +548,88 @@ public class SinaHot implements IXposedHookLoadPackage {
 
 
     }
+
+    private void postDetailTest(final SinaMBlogBean bean) throws JSONException {
+        if (bean == null) {
+            return;
+        }
+
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://114.55.110.143:9001/api/weibo", new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.d("TAG", response);
+                XposedBridge.log("onResponse ＝＝＝" + response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("TAG", error.getMessage(), error);
+                XposedBridge.log("onErrorResponse ＝＝＝" + error.getMessage());
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> map = new HashMap<String, String>();
+                try {
+
+                    JSONObject jsonObject = new JSONObject();
+                    if (bean.getPicInfos() != null) {
+                        JSONArray jo = new JSONArray();
+                        for (int j = 0; j < bean.getPicInfos().size(); j++) {
+                            jo.put(reflect(bean.getPicInfos().get(j)));
+                        }
+                        jsonObject.put("picinfos", jo);
+                    }
+
+                    if (bean.getmBlogCards() != null) {
+                        JSONArray jo = new JSONArray();
+                        for (int j = 0; j < bean.getmBlogCards().size(); j++) {
+                            jo.put(reflect(bean.getmBlogCards().get(j)));
+                        }
+
+                        jsonObject.put("mblogcards", jo);
+                    }
+
+
+                    if (bean.getMblogTags() != null) {
+                        JSONArray jo = new JSONArray();
+                        for (int j = 0; j < bean.getMblogTags().size(); j++) {
+                            jo.put(reflect(bean.getMblogTags().get(j)));
+                        }
+
+                        jsonObject.put("mblogtags", jo);
+                    }
+
+                    if (bean.getTopicTitles() != null && bean.getTopicTitles().size() != 0) {
+                        JSONArray ja = new JSONArray();
+                        for (int j = 0; j < bean.getTopicTitles().size(); j++) {
+                            ja.put(bean.getTopicTitles().get(j));
+                        }
+                        jsonObject.put("toptitle", ja);
+                    }
+
+                    if (bean.getMediaDataObject() != null) {
+
+                        jsonObject.put("video", reflect(bean.getMediaDataObject()));
+                    }
+
+                    jsonObject.put("status", reflect(bean));
+                    map.put("news",jsonObject.toString());
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+
+                XposedBridge.log("SinaHot:::" + bean.toString());
+                return map;
+            }
+        };
+        mQueue.add(stringRequest);
+    }
+
 
     public static JSONArray getJsonArray(List<SinaMBlogBean> list) throws JSONException {
         JSONArray jsonArray = new JSONArray();
@@ -638,8 +718,6 @@ public class SinaHot implements IXposedHookLoadPackage {
         }
         return jo;
     }
-
-
 
 
 }

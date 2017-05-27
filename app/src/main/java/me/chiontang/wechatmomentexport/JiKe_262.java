@@ -129,8 +129,9 @@ public class JiKe_262 implements IXposedHookLoadPackage {
         final JSONArray ab = getJsonArray(appendList);
 
         XposedBridge.log("JSONArray ＝＝＝" + ab);
+        //莱特提供地址
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://120.27.162.110:9000/jike_news", new Response.Listener<String>() {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://114.55.110.143:9000/jike_news", new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 Log.d("TAG", response);

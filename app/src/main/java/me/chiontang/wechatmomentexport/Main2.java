@@ -98,7 +98,7 @@ public class Main2 implements IXposedHookLoadPackage {
         }
 
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://120.27.162.110:9000/news", new Response.Listener<String>() {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://114.55.110.143:9001/news", new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 Log.d("TAG", response);
@@ -123,6 +123,50 @@ public class Main2 implements IXposedHookLoadPackage {
                 if (bean.getDetailHtml() != null)
                     map.put("detail_html", bean.getDetailHtml());
                 map.put("published_date", bean.getPublished_date() + "");
+                if (bean.getSummary() != null)
+                    map.put("summary", bean.getSummary());
+                if (bean.getAuthor() != null)
+                    map.put("author", bean.getAuthor());
+//                if(bean.getd!= null)
+//                    map.put("docid", bean.getArticlTitle());
+                return map;
+            }
+        };
+        mQueue.add(stringRequest);
+    }
+
+
+    private void postDetailTest(final ModelBean bean) {
+        if (bean == null) {
+            return;
+        }
+
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, "http://114.55.110.143:9001/api/wandoujia", new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.d("TAG", response);
+                XposedBridge.log("onResponse ＝＝＝" + response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("TAG", error.getMessage(), error);
+                XposedBridge.log("onErrorResponse ＝＝＝" + error.getMessage());
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> map = new HashMap<String, String>();
+                if (bean.getArticlTitle() != null)
+                    map.put("title", bean.getArticlTitle());
+                if (bean.getAppName() != null)
+                    map.put("source", bean.getAppName());
+//                if (bean.getIcon() != null)
+//                    map.put("app_icon", bean.getIcon());
+                if (bean.getDetailHtml() != null)
+                    map.put("html", bean.getDetailHtml());
+                map.put("time", bean.getPublished_date() + "");
                 if (bean.getSummary() != null)
                     map.put("summary", bean.getSummary());
                 if (bean.getAuthor() != null)
@@ -281,7 +325,7 @@ public class Main2 implements IXposedHookLoadPackage {
                                             }
 
                                             XposedBridge.log("插入的数据的title为：" + bean.getArticlTitle());
-                                            postDetail(bean);
+                                            postDetailTest(bean);
                                         }
 //                                        XposedBridge.log("  detailResultMap ＝＝＝＝ " + detailResultMap.size());
 
